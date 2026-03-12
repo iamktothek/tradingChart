@@ -2,85 +2,93 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading OS Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trading OS Pro | Mobile</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #cbd5e1; }
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #cbd5e1; -webkit-tap-highlight-color: transparent; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         @keyframes pulse-blue { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .animate-pulse-slow { animation: pulse-blue 2s infinite; }
+        /* Prevent chart overlap on small screens */
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        @media (min-width: 1024px) { .chart-container { height: 400px; } }
     </style>
 </head>
 <body class="p-4 lg:p-8">
     <div class="max-w-[1600px] mx-auto">
-        <header class="flex justify-between items-center mb-8">
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
                 <h1 class="text-2xl font-black text-white tracking-tighter uppercase">Trading<span class="text-blue-500">OS</span></h1>
                 <p id="last-sync" class="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Initialising...</p>
             </div>
-            <div class="flex items-center gap-4 bg-slate-900/80 p-3 px-6 rounded-2xl border border-white/5 shadow-xl">
-                <div class="text-right mr-4">
+            <div class="flex items-center justify-between w-full sm:w-auto gap-4 bg-slate-900/80 p-3 px-6 rounded-2xl border border-white/5 shadow-xl">
+                <div class="text-left sm:text-right">
                     <p class="text-[10px] uppercase text-slate-500 font-black">Net Equity</p>
-                    <p id="live-equity" class="text-2xl font-mono text-white font-bold">$0.00</p>
+                    <p id="live-equity" class="text-xl sm:text-2xl font-mono text-white font-bold">$0.00</p>
                 </div>
-                <button onclick="initDashboard()" id="refresh-btn" class="bg-blue-600 hover:bg-blue-500 p-3 rounded-xl transition-all shadow-lg shadow-blue-600/20">
+                <button onclick="initDashboard()" id="refresh-btn" class="bg-blue-600 active:scale-95 hover:bg-blue-500 p-3 rounded-xl transition-all shadow-lg shadow-blue-600/20">
                     <svg id="refresh-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 </button>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
-            <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5">
-                <p class="text-slate-500 text-[10px] font-black uppercase mb-1">BTC / USD Price</p>
-                <p id="btc-price" class="text-2xl font-mono font-bold text-orange-500 transition-colors duration-500">----</p>
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">BTC / USD</p>
+                <p id="btc-price" class="text-lg sm:text-xl font-mono font-bold text-orange-500 truncate">----</p>
             </div>
-            <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5">
-                <p class="text-slate-500 text-[10px] font-black uppercase mb-1">Win Rate</p>
-                <div class="flex items-center gap-3">
-                    <p id="win-rate" class="text-2xl font-mono font-bold text-white">0%</p>
-                    <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div id="win-rate-bar" class="h-full bg-blue-500 transition-all duration-1000" style="width: 0%"></div></div>
-                </div>
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Win Rate</p>
+                <p id="win-rate" class="text-lg sm:text-xl font-mono font-bold text-white">0%</p>
             </div>
-            <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5">
-                <p class="text-slate-500 text-[10px] font-black uppercase mb-1">Total Trades</p>
-                <p id="trade-count" class="text-2xl font-mono font-bold text-blue-400">0</p>
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Trades</p>
+                <p id="trade-count" class="text-lg sm:text-xl font-mono font-bold text-blue-400">0</p>
             </div>
-            <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5">
-                <p class="text-slate-500 text-[10px] font-black uppercase mb-1">Session P&L</p>
-                <p id="daily-pnl" class="text-2xl font-mono font-bold text-white">--</p>
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Session</p>
+                <p id="daily-pnl" class="text-lg sm:text-xl font-mono font-bold text-white">--</p>
             </div>
-            <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5">
-                <p class="text-slate-500 text-[10px] font-black uppercase mb-1">Buying Power</p>
-                <p id="buying-power" class="text-2xl font-mono font-bold text-slate-400">--</p>
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5 col-span-2 lg:col-span-1">
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Buying Power</p>
+                <p id="buying-power" class="text-lg sm:text-xl font-mono font-bold text-slate-400">--</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-            <div class="xl:col-span-8 space-y-6">
-                <div class="bg-slate-900/50 p-6 rounded-3xl border border-white/5">
-                    <h3 class="text-xs font-black text-slate-500 uppercase mb-6">Equity Growth</h3>
-                    <div class="h-[400px]"><canvas id="performanceChart"></canvas></div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-8 space-y-6">
+                <div class="bg-slate-900/50 p-4 sm:p-6 rounded-3xl border border-white/5 shadow-2xl">
+                    <h3 class="text-[10px] font-black text-slate-500 uppercase mb-4">Equity Curve</h3>
+                    <div class="chart-container"><canvas id="performanceChart"></canvas></div>
                 </div>
-                <div class="bg-slate-900/50 rounded-3xl border border-white/5 overflow-hidden h-[450px]">
+                <div class="bg-slate-900/50 rounded-3xl border border-white/5 overflow-hidden h-[400px] sm:h-[500px] shadow-2xl">
                     <div id="tv-chart" class="h-full"></div>
                 </div>
             </div>
-            <div class="xl:col-span-4 bg-slate-900/50 rounded-3xl border border-white/5 flex flex-col overflow-hidden">
-                <div class="p-5 border-b border-white/5 bg-slate-900/80"><h3 class="text-xs font-black text-slate-400 uppercase">Executions</h3></div>
-                <div class="overflow-y-auto custom-scrollbar h-[900px]"><table class="w-full text-left"><tbody id="trade-feed"></tbody></table></div>
+
+            <div class="lg:col-span-4 bg-slate-900/50 rounded-3xl border border-white/5 flex flex-col overflow-hidden shadow-2xl">
+                <div class="p-4 border-b border-white/5 bg-slate-900/80">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase">Execution Log</h3>
+                </div>
+                <div class="overflow-y-auto custom-scrollbar h-[500px] lg:h-[900px]">
+                    <table class="w-full text-left">
+                        <tbody id="trade-feed" class="divide-y divide-white/5"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const PROXY_URL = "https://tradingproxy.iamkevinkelly.workers.dev"; // UPDATE THIS
-        let chartInstance = null; let lastBtcPrice = 0;
+        const PROXY_URL = "https://tradingproxy.iamkevinkelly.workers.dev"; // CHANGE THIS
+        let chartInstance = null; 
+        let lastBtcPrice = 0;
 
         async function updateBTCPrice() {
             try {
@@ -90,51 +98,53 @@
                 const btcEl = document.getElementById('btc-price');
                 if (btcRaw > 0) {
                     btcEl.innerText = `$${parseFloat(btcRaw).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                    btcEl.style.color = btcRaw >= lastBtcPrice ? '#4ade80' : '#f87171';
+                    if (lastBtcPrice > 0) {
+                        btcEl.style.color = btcRaw >= lastBtcPrice ? '#4ade80' : '#f87171';
+                        setTimeout(() => { btcEl.style.color = '#f59e0b'; }, 800);
+                    }
                     lastBtcPrice = btcRaw;
-                    setTimeout(() => { btcEl.style.color = '#f59e0b'; }, 1000);
                 }
             } catch (e) { console.error("BTC Sync Error"); }
         }
 
         async function initDashboard() {
-            const icon = document.getElementById('refresh-icon'); icon.classList.add('animate-spin');
+            const icon = document.getElementById('refresh-icon'); 
+            icon.classList.add('animate-spin');
             try {
                 const response = await fetch(PROXY_URL);
                 const data = await response.json();
                 
-                // Alpaca Updates
                 document.getElementById('live-equity').innerText = `$${parseFloat(data.account.equity).toLocaleString()}`;
                 document.getElementById('buying-power').innerText = `$${parseFloat(data.account.buying_power).toLocaleString()}`;
                 const pnl = data.account.equity - data.account.last_equity;
                 const pnlEl = document.getElementById('daily-pnl');
                 pnlEl.innerText = (pnl >= 0 ? '+' : '') + `$${pnl.toFixed(2)}`;
-                pnlEl.className = `text-2xl font-mono font-bold ${pnl >= 0 ? 'text-green-400' : 'text-red-400'}`;
+                pnlEl.className = `text-lg sm:text-xl font-mono font-bold ${pnl >= 0 ? 'text-green-400' : 'text-red-400'}`;
 
-                // CSV Parsing
                 if (data.sheetData.includes('<!DOCTYPE html>')) {
-                    document.getElementById('last-sync').innerText = "DATA ERROR: Use Export URL";
+                    document.getElementById('last-sync').innerText = "ENV URL ERROR";
                     return;
                 }
 
                 const rows = data.sheetData.split('\n').slice(1).filter(r => r.trim() !== "" && r.includes(','));
-                const feedContainer = document.getElementById('trade-feed'); feedContainer.innerHTML = '';
+                const feedContainer = document.getElementById('trade-feed'); 
+                feedContainer.innerHTML = '';
                 
-                let winCount = 0; let closedCount = 0; let runningEquity = 0; let labels = []; let points = [];
+                let winCount = 0, closedCount = 0, runningEquity = 0, labels = [], points = [];
 
                 rows.forEach((row) => {
                     const cols = row.split(',');
                     if (cols.length < 10) return;
 
-                    const time = cols[1];
-                    const symbol = cols[2];
-                    const status = cols[7]?.trim().toUpperCase() || "";
-                    const pnlVal = parseFloat(cols[9]) || 0;
-                    const outcome = cols[10]?.trim() || "";
+                    const time = cols[1]; // Col B
+                    const symbol = cols[2]; // Col C
+                    const status = cols[7]?.trim().toUpperCase() || ""; // Col H
+                    const pnlVal = parseFloat(cols[9]) || 0; // Col J
+                    const outcome = cols[10]?.trim() || ""; // Col K
 
                     if (status === "CLOSED") {
                         closedCount++;
-                        if (outcome === "Win" || pnlVal > 0) winCount++;
+                        if (outcome.toLowerCase() === "win" || pnlVal > 0) winCount++;
                     }
 
                     runningEquity += pnlVal;
@@ -143,12 +153,12 @@
 
                     const isOpen = status === "OPEN";
                     const tr = document.createElement('tr');
-                    tr.className = `border-b border-white/5 ${isOpen ? 'bg-blue-500/10 border-l-4 border-l-blue-500' : ''}`;
+                    tr.className = `${isOpen ? 'bg-blue-500/10 border-l-4 border-l-blue-500' : ''}`;
                     tr.innerHTML = `
-                        <td class="p-4 text-xs font-bold text-white font-mono">${new Date(time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-                        <td class="p-4 text-sm font-black text-blue-400 font-mono">${symbol}</td>
-                        <td class="p-4 text-right font-bold font-mono ${pnlVal >= 0 ? 'text-green-400' : 'text-red-400'}">${isOpen ? '---' : pnlVal.toFixed(2)}</td>
-                        <td class="p-4 text-right"><span class="px-2 py-1 rounded text-[9px] font-black uppercase ${isOpen ? 'bg-blue-500 text-white animate-pulse-slow' : 'bg-slate-800 text-slate-400'}">${status}</span></td>
+                        <td class="p-3 sm:p-4 text-[10px] font-bold text-white font-mono">${new Date(time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                        <td class="p-3 sm:p-4 text-xs font-black text-blue-400 font-mono">${symbol}</td>
+                        <td class="p-3 sm:p-4 text-right font-bold font-mono text-xs ${pnlVal >= 0 ? 'text-green-400' : 'text-red-400'}">${isOpen ? '---' : pnlVal.toFixed(2)}</td>
+                        <td class="p-3 sm:p-4 text-right"><span class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${isOpen ? 'bg-blue-500 text-white animate-pulse-slow' : 'bg-slate-800 text-slate-400'}">${status}</span></td>
                     `;
                     feedContainer.prepend(tr);
                 });
@@ -156,8 +166,7 @@
                 document.getElementById('trade-count').innerText = closedCount;
                 const wr = closedCount > 0 ? Math.round((winCount / closedCount) * 100) : 0;
                 document.getElementById('win-rate').innerText = `${wr}%`;
-                document.getElementById('win-rate-bar').style.width = `${wr}%`;
-                document.getElementById('last-sync').innerText = `Synced: ${new Date().toLocaleTimeString()}`;
+                document.getElementById('last-sync').innerText = `Sync: ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
                 renderChart(labels, points);
             } catch (err) { console.error(err); } finally { icon.classList.remove('animate-spin'); }
         }
@@ -167,25 +176,18 @@
             if (chartInstance) chartInstance.destroy();
             chartInstance = new Chart(ctx, {
                 type: 'line',
-                data: { labels: labels, datasets: [{ data: data, borderColor: '#3b82f6', tension: 0.4, fill: true, backgroundColor: 'rgba(59,130,246,0.1)', pointRadius: 0 }] },
+                data: { labels, datasets: [{ data, borderColor: '#3b82f6', tension: 0.4, fill: true, backgroundColor: 'rgba(59,130,246,0.1)', pointRadius: 0 }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' } } } }
             });
         }
 
         function initTV() { 
-            new TradingView.widget({ 
-                "autosize": true, 
-                "symbol": "COINBASE:BTCUSD", 
-                "interval": "60", 
-                "theme": "dark", 
-                "style": "1", 
-                "container_id": "tv-chart", 
-                "hide_top_toolbar": true 
-            }); 
+            new TradingView.widget({ "autosize": true, "symbol": "COINBASE:BTCUSD", "interval": "60", "theme": "dark", "style": "1", "container_id": "tv-chart", "hide_top_toolbar": true, "allow_symbol_change": true, "save_image": false }); 
         }
 
         initDashboard(); initTV(); updateBTCPrice();
-        setInterval(initDashboard, 60000); setInterval(updateBTCPrice, 10000);
+        setInterval(initDashboard, 60000); 
+        setInterval(updateBTCPrice, 10000);
     </script>
 </body>
 </html>
