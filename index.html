@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-white p-6">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold border-l-4 border-blue-500 pl-4">Trading Dashboard</h1>
+            <div class="text-right">
+                <p class="text-slate-400 text-sm">Live Alpaca Equity</p>
+                <p id="live-equity" class="text-3xl font-mono text-green-400">$0.00</p>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl shadow-xl">
+                <h3 class="mb-4 text-slate-400 font-semibold uppercase text-xs tracking-widest">Performance (Google Sheets)</h3>
+                <canvas id="performanceChart"></canvas>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <p class="text-slate-400 text-sm uppercase">Buying Power</p>
+                    <p id="buying-power" class="text-2xl font-bold mt-1">--</p>
+                </div>
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <p class="text-slate-400 text-sm uppercase">Daily P&L</p>
+                    <p id="daily-pnl" class="text-2xl font-bold mt-1 text-blue-400">--</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. REPLACE THIS with your Cloudflare Worker URL
+        const PROXY_URL = "tradingproxy.iamkevinkelly.workers.dev";
+
+        async function initDashboard() {
+            try {
+                const response = await fetch(PROXY_URL);
+                const data = await response.json();
+
+                // Update Alpaca Stats
+                document.getElementById('live-equity').innerText = `$${parseFloat(data.account.equity).toLocaleString()}`;
+                document.getElementById('buying-power').innerText = `$${parseFloat(data.account.buying_power).toLocaleString()}`;
+                
+                const pnl = data.account.equity - data.account.last_equity;
+                document.getElementById('daily-pnl').innerText = (pnl >= 0 ? '+' : '') + `$${pnl.toFixed(2)}`;
+
+                // Process Google Sheet CSV Data
+                // This assumes: Column A is 'Date' and Column B is 'Balance/Profit'
+                const rows = data.sheetData.split('\n').slice(1); // Skip header row
+                const labels = [];
+                const chartValues = [];
+
+                rows.forEach(row => {
+                    const cols = row.split(',');
+                    if(cols[0] && cols[1]) {
+                        labels.push(cols[0]); // Date
+                        chartValues.push(parseFloat(cols[1])); // Profit/Equity
+                    }
+                });
+
+                renderChart(labels, chartValues);
+
+            } catch (err) {
+                console.error("Dashboard failed to load:", err);
+            }
+        }
+
+        function renderChart(labels, data) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Portfolio Equity',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+                    }
+                }
+            });
+        }
+
+        initDashboard();
+    </script>
+</body>
+</html>
