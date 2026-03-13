@@ -15,7 +15,6 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .price-up { color: #4ade80 !important; }
         .price-down { color: #f87171 !important; }
-        /* Smooth transitions for price flashes */
         #btc-price { transition: all 0.3s ease; }
     </style>
 </head>
@@ -86,11 +85,11 @@
     </div>
 
     <script>
-        const PROXY_URL = "https://trading-api-proxy.yourname.workers.dev"; // UPDATE THIS
+        const PROXY_URL = "YOUR_WORKER_URL_HERE"; 
         let chartInstance = null;
         let lastBtcPrice = 0;
 
-        // 1. BTC PRICE TICKER (COINBASE)
+        // BTC PRICE VIA COINBASE (RELIABLE)
         async function updateBTCPrice() {
             try {
                 const res = await fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot');
@@ -101,14 +100,12 @@
                 
                 if (price > 0) {
                     btcEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                    
                     if (lastBtcPrice > 0 && price !== lastBtcPrice) {
                         const isUp = price > lastBtcPrice;
                         btcEl.classList.remove('text-orange-500');
                         btcEl.classList.add(isUp ? 'price-up' : 'price-down');
                         trendEl.innerHTML = isUp ? '▲' : '▼';
                         trendEl.className = `text-xs ${isUp ? 'text-green-500' : 'text-red-500'}`;
-                        
                         setTimeout(() => { 
                             btcEl.classList.remove('price-up', 'price-down');
                             btcEl.classList.add('text-orange-500');
@@ -116,17 +113,15 @@
                     }
                     lastBtcPrice = price;
                 }
-            } catch (e) { console.error("BTC Update Failed"); }
+            } catch (e) { console.error("Ticker Fail"); }
         }
 
-        // 2. MAIN DASHBOARD REFRESH
         async function initDashboard() {
             const icon = document.getElementById('refresh-icon'); icon.classList.add('animate-spin');
             try {
                 const response = await fetch(PROXY_URL);
                 const data = await response.json();
                 
-                // Update Account Stats
                 document.getElementById('live-equity').innerText = `$${parseFloat(data.account.equity).toLocaleString()}`;
                 document.getElementById('buying-power').innerText = `$${parseFloat(data.account.buying_power).toLocaleString()}`;
                 
@@ -135,7 +130,6 @@
                 pnlEl.innerText = (pnl >= 0 ? '+' : '') + `$${pnl.toFixed(2)}`;
                 pnlEl.className = `text-lg font-mono font-bold ${pnl >= 0 ? 'text-green-400' : 'text-red-400'}`;
 
-                // Process Sheet Data
                 const rows = data.sheetData.split('\n').slice(1).filter(r => r.trim() !== "" && r.includes(','));
                 const feedContainer = document.getElementById('trade-feed'); feedContainer.innerHTML = '';
                 
@@ -145,34 +139,24 @@
                     const cols = row.split(',');
                     if (cols.length < 11) return;
 
-                    // HUMAN DATE FORMATTING
-                    const dateObj = new Date(cols[1]); // Col B
+                    // NORMAL DATE FORMAT
+                    const dateObj = new Date(cols[1]); 
                     const formattedDate = isNaN(dateObj) ? cols[1] : dateObj.toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
+                        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
                     });
 
-                    const symbol = cols[2];  // C
-                    const tp = cols[4];      // E
-                    const sl = cols[5];      // F
-                    const status = cols[7]?.trim().toUpperCase() || ""; // H
-                    const pnlVal = parseFloat(cols[9]) || 0; // J
-                    const outcome = cols[10]?.trim() || ""; // K
+                    const symbol = cols[2], tp = cols[4], sl = cols[5], status = cols[7]?.trim().toUpperCase() || "";
+                    const pnlVal = parseFloat(cols[9]) || 0, outcome = cols[10]?.trim() || "";
 
                     if (status === "CLOSED") {
                         closedCount++;
                         if (outcome.toLowerCase() === "win" || pnlVal > 0) winCount++;
                     }
 
-                    // For the growth chart
                     runningEquity += pnlVal;
                     labels.push(formattedDate);
                     points.push(runningEquity);
 
-                    // Build Feed Card
                     const isOpen = status === "OPEN";
                     const item = document.createElement('div');
                     item.className = `p-4 flex flex-col gap-2 ${isOpen ? 'bg-blue-500/10 border-l-4 border-l-blue-500' : ''}`;
@@ -185,8 +169,8 @@
                             <div>
                                 <h4 class="text-sm font-black text-blue-400 leading-none mb-1">${symbol}</h4>
                                 <div class="flex gap-2 text-[9px] font-mono">
-                                    <span class="text-green-500 font-bold uppercase">TP: ${tp}</span>
-                                    <span class="text-red-500 font-bold uppercase">SL: ${sl}</span>
+                                    <span class="text-green-500 font-bold">TP: ${tp}</span>
+                                    <span class="text-red-500 font-bold">SL: ${sl}</span>
                                 </div>
                             </div>
                             <div class="text-right">
@@ -199,21 +183,15 @@
                     feedContainer.prepend(item);
                 });
 
-                // Update Stats
                 document.getElementById('trade-count').innerText = closedCount;
                 const wr = closedCount > 0 ? Math.round((winCount / closedCount) * 100) : 0;
                 document.getElementById('win-rate').innerText = `${wr}%`;
                 document.getElementById('last-sync').innerText = `Sync: ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
                 
                 renderChart(labels, points);
-            } catch (err) { 
-                console.error("Dashboard Sync Failed", err); 
-            } finally { 
-                icon.classList.remove('animate-spin'); 
-            }
+            } catch (err) { console.error("Sync Failed", err); } finally { icon.classList.remove('animate-spin'); }
         }
 
-        // 3. CHARTING LOGIC
         function renderChart(labels, data) {
             const ctx = document.getElementById('performanceChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
@@ -221,26 +199,20 @@
                 type: 'line',
                 data: { labels, datasets: [{ data, borderColor: '#3b82f6', tension: 0.4, fill: true, backgroundColor: 'rgba(59,130,246,0.1)', pointRadius: 0 }] },
                 options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
+                    responsive: true, maintainAspectRatio: false, 
                     plugins: { legend: { display: false } }, 
-                    scales: { 
-                        x: { display: false }, 
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } } 
-                    } 
+                    scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } } } 
                 }
             });
         }
 
-        // 4. TRADINGVIEW WIDGET
         function initTV() { 
             new TradingView.widget({ "autosize": true, "symbol": "COINBASE:BTCUSD", "interval": "60", "theme": "dark", "style": "1", "container_id": "tv-chart", "hide_top_toolbar": true, "allow_symbol_change": true }); 
         }
 
-        // INITIALIZE
         initDashboard(); initTV(); updateBTCPrice();
-        setInterval(initDashboard, 60000); // Sync data every minute
-        setInterval(updateBTCPrice, 5000); // Sync BTC price every 5 seconds
+        setInterval(initDashboard, 60000); 
+        setInterval(updateBTCPrice, 5000); 
     </script>
 </body>
 </html>
