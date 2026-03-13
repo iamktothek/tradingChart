@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trading OS Pro | v2.0 Performance Terminal</title>
+    <title>Trading OS Pro | Master Terminal v2.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -12,6 +12,7 @@
         body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #cbd5e1; -webkit-tap-highlight-color: transparent; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .price-up { color: #4ade80 !important; }
         .price-down { color: #f87171 !important; }
@@ -22,8 +23,8 @@
     <div class="max-w-[1600px] mx-auto">
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
-                <h1 class="text-2xl font-black text-white tracking-tighter uppercase italic">Trading<span class="text-blue-500">OS</span> <span class="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded ml-2 uppercase font-bold">PRO v2.0</span></h1>
-                <p id="last-sync" class="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-1 italic">Live Terminal Sync</p>
+                <h1 class="text-2xl font-black text-white tracking-tighter uppercase italic">Trading<span class="text-blue-500">OS</span> <span class="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded ml-2 uppercase font-bold tracking-widest">PRO v2.1</span></h1>
+                <p id="last-sync" class="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-1 italic font-mono">Sync: --:--:--</p>
             </div>
             <div class="flex items-center gap-4 bg-slate-900/80 p-3 px-6 rounded-2xl border border-white/5 shadow-xl">
                 <div class="text-right">
@@ -40,8 +41,8 @@
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">BTC / USD</p>
                 <div class="flex items-center gap-2">
-                    <p id="btc-price" class="text-lg font-mono font-bold text-orange-500">----</p>
-                    <span id="btc-trend" class="text-xs"></span>
+                    <p id="btc-price" class="text-lg font-mono font-bold text-orange-500 transition-colors duration-500">----</p>
+                    <span id="btc-trend" class="text-[10px] font-bold"></span>
                 </div>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
@@ -60,7 +61,7 @@
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Total P&L</p>
                 <div id="total-pnl" class="leading-tight font-mono font-bold">--</div>
             </div>
-            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5 col-span-2 lg:col-span-1">
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Buying Power</p>
                 <p id="buying-power" class="text-lg font-mono font-bold text-slate-400">--</p>
             </div>
@@ -72,13 +73,12 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                         <div>
                             <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Performance Curve</h3>
-                            <p class="text-[9px] text-slate-600 font-bold uppercase mt-1">Timeline Baseline: March 10</p>
+                            <p class="text-[9px] text-slate-600 font-bold uppercase mt-1 italic">Baseline: Mar 10</p>
                         </div>
                         <div class="flex gap-1 bg-black/20 p-1 rounded-xl">
                             <button onclick="applyFilter('24h', this)" class="filter-btn text-[9px] font-black uppercase px-3 py-1.5 rounded-lg text-slate-500 transition-all">24H</button>
                             <button onclick="applyFilter('7d', this)" class="filter-btn text-[9px] font-black uppercase px-3 py-1.5 rounded-lg text-slate-500 transition-all">7D</button>
-                            <button onclick="applyFilter('30d', this)" class="filter-btn text-[9px] font-black uppercase px-3 py-1.5 rounded-lg text-slate-500 transition-all">30D</button>
-                            <button onclick="applyFilter('all', this)" class="filter-btn active-filter text-[9px] font-black uppercase px-3 py-1.5 rounded-lg bg-blue-600 text-white transition-all">All Time</button>
+                            <button onclick="applyFilter('all', this)" class="filter-btn active-filter text-[9px] font-black uppercase px-3 py-1.5 rounded-lg bg-blue-600 text-white transition-all">All</button>
                         </div>
                     </div>
                     <div class="h-[350px]"><canvas id="performanceChart"></canvas></div>
@@ -100,7 +100,7 @@
         </div>
 
         <div class="bg-slate-900/50 p-6 rounded-3xl border border-white/5 shadow-2xl mb-12">
-            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Linked Decision Analysis Feed</h3>
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Decision Analysis Feed</h3>
             <div id="decision-feed" class="flex flex-col gap-8 max-h-[1200px] overflow-y-auto pr-4 custom-scrollbar"></div>
         </div>
     </div>
@@ -112,10 +112,9 @@
         let lastBtcPrice = 0;
         let allTrades = [];
 
+        // Robust CSV Parser for handling commas in rationales
         function parseCSVLine(line) {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
+            const result = []; let current = ''; let inQuotes = false;
             for (let i = 0; i < line.length; i++) {
                 const char = line[i];
                 if (char === '"') inQuotes = !inQuotes;
@@ -123,7 +122,7 @@
                 else current += char;
             }
             result.push(current.trim());
-            return result;
+            return result.map(v => v.replace(/^"|"$/g, ''));
         }
 
         async function updateBTCPrice() {
@@ -132,7 +131,16 @@
                 const data = await res.json();
                 const price = parseFloat(data.data.amount);
                 const btcEl = document.getElementById('btc-price');
+                const trendEl = document.getElementById('btc-trend');
+
                 if (price > 0) {
+                    if (lastBtcPrice > 0 && price !== lastBtcPrice) {
+                        const isUp = price > lastBtcPrice;
+                        btcEl.className = `text-lg font-mono font-bold transition-colors duration-500 ${isUp ? 'price-up' : 'price-down'}`;
+                        trendEl.innerText = isUp ? '▲' : '▼';
+                        trendEl.className = `text-[10px] font-bold ${isUp ? 'text-green-400' : 'text-red-400'}`;
+                        setTimeout(() => { btcEl.className = 'text-lg font-mono font-bold text-orange-500 transition-colors duration-500'; }, 2000);
+                    }
                     btcEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
                     lastBtcPrice = price;
                 }
@@ -188,27 +196,29 @@
                             <span class="px-2 py-0.5 rounded font-black uppercase ${isOpen ? 'bg-blue-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}">${status}</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <div><h4 class="text-sm font-black text-blue-400">${cols[2]}</h4></div>
-                            <div class="text-right font-mono font-bold ${pnlVal >= 0 ? 'text-green-400' : 'text-red-400'}">${isOpen ? 'LIVE' : pnlVal.toFixed(2)}</div>
-                        </div>
-                    `;
+                            <div><h4 class="text-sm font-black text-blue-400 mb-0.5">${cols[2]}</h4>
+                                 <div class="flex gap-2 text-[9px] font-mono"><span class="text-green-500 font-bold uppercase">TP: ${cols[4]}</span><span class="text-red-500 font-bold uppercase">SL: ${cols[5]}</span></div>
+                            </div>
+                            <div class="text-right font-mono font-bold ${pnlVal >= 0 ? 'text-green-400' : 'text-red-400'}">${isOpen ? 'LIVE' : (pnlVal > 0 ? '+' : '') + pnlVal.toFixed(2)}</div>
+                        </div>`;
                     feedContainer.prepend(item);
                 });
 
-                // Update Stat Colors
+                // Stats Color Triggers
                 const dailyEl = document.getElementById('daily-pnl');
                 dailyEl.innerText = (dailyPnlSum >= 0 ? '+' : '') + `$${dailyPnlSum.toFixed(2)}`;
                 dailyEl.className = `text-lg font-mono font-bold ${dailyPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
 
                 const totalPnlEl = document.getElementById('total-pnl');
-                totalPnlEl.innerText = (runningPnl >= 0 ? '+' : '') + `$${runningPnl.toLocaleString()}`;
-                totalPnlEl.className = `leading-tight font-mono font-bold ${runningPnl >= 0 ? 'text-green-400' : 'text-red-400'}`;
+                totalPnlEl.innerHTML = `<span class="block text-lg font-bold">${runningPnl >= 0 ? '+' : ''}$${runningPnl.toLocaleString(undefined, {minimumFractionDigits: 2})}</span><span class="text-[11px] opacity-90">${((runningPnl/STARTING_BALANCE)*100).toFixed(2)}%</span>`;
+                totalPnlEl.className = `font-mono ${runningPnl >= 0 ? 'text-green-400' : 'text-red-400'}`;
 
                 document.getElementById('trade-count').innerText = closedCount;
                 document.getElementById('win-rate').innerText = `${closedCount > 0 ? Math.round((winCount / closedCount) * 100) : 0}%`;
 
                 if (data.decisionsData) renderDecisionFeed(data.decisionsData);
                 applyFilter('all', document.querySelector('.active-filter'));
+                document.getElementById('last-sync').innerText = `Sync: ${new Date().toLocaleTimeString()}`;
 
             } catch (err) { console.error(err); } finally { icon.classList.remove('animate-spin'); }
         }
@@ -221,10 +231,10 @@
             rows.forEach(row => {
                 const cols = parseCSVLine(row);
                 if (cols.length < 9) return;
-                
                 const analysisTime = new Date(cols[0]).getTime();
                 const isExecuted = cols[1].toUpperCase() === 'TRUE';
 
+                // Link to Execution Logic (120s window)
                 const linkedTrade = allTrades.find(t => {
                     const diff = (t.timestamp - analysisTime) / 1000;
                     return diff >= 0 && diff <= 120;
@@ -234,57 +244,27 @@
                 if (linkedTrade) {
                     let badgeStyle, pnlText;
                     if (linkedTrade.status === "OPEN" || isNaN(linkedTrade.pnl)) {
-                        badgeStyle = "bg-blue-600/20 text-blue-400 border-blue-500/40";
-                        pnlText = "Currently Active Trade";
+                        badgeStyle = "bg-blue-600/20 text-blue-400 border-blue-500/40"; pnlText = "Active";
                     } else if (linkedTrade.pnl > 0) {
-                        badgeStyle = "bg-green-600/20 text-green-400 border-green-500/40";
-                        pnlText = `Profit: +$${linkedTrade.pnl.toFixed(2)}`;
+                        badgeStyle = "bg-green-600/20 text-green-400 border-green-500/40"; pnlText = `+$${linkedTrade.pnl.toFixed(2)}`;
                     } else {
-                        badgeStyle = "bg-red-600/20 text-red-400 border-red-500/40";
-                        pnlText = `Loss: $${linkedTrade.pnl.toFixed(2)}`;
+                        badgeStyle = "bg-red-600/20 text-red-400 border-red-500/40"; pnlText = `$${linkedTrade.pnl.toFixed(2)}`;
                     }
                     linkedBadge = `<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border font-black text-[9px] uppercase tracking-wider ${badgeStyle}">${linkedTrade.symbol} | ${pnlText}</div>`;
                 }
-
-                const statusClass = isExecuted ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30";
-                const dateNorm = new Date(cols[0]).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) + ' — ' + new Date(cols[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
                 const card = document.createElement('div');
                 card.className = "bg-black/40 border border-white/5 rounded-3xl p-6 flex flex-col gap-6 shadow-xl w-full";
                 card.innerHTML = `
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-white/5">
-                        <div class="flex flex-col">
-                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Analysis Log</span>
-                            <span class="text-sm font-bold text-white font-mono">${dateNorm}</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            ${linkedBadge}
-                            <div class="px-4 py-2 rounded-xl border font-black text-[10px] uppercase ${statusClass}">${isExecuted ? "Trade Executed" : "No Trade Executed"}</div>
-                        </div>
+                        <div class="flex flex-col"><span class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Workflow Timestamp</span><span class="text-sm font-bold text-white font-mono">${new Date(cols[0]).toLocaleString()}</span></div>
+                        <div class="flex items-center gap-3">${linkedBadge}<div class="px-4 py-2 rounded-xl border font-black text-[10px] uppercase ${isExecuted ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}">${isExecuted ? "Trade Executed" : "No Trade"}</div></div>
                     </div>
-                    <div class="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5">
-                        <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-3 underline decoration-blue-500/30">Trading Rationale</span>
-                        <p class="text-xs text-slate-200 font-medium leading-relaxed whitespace-pre-wrap">${cols[2]}</p>
-                    </div>
+                    <div class="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5"><span class="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-2">Trading Rationale</span><p class="text-xs text-slate-200 font-medium leading-relaxed">${cols[2]}</p></div>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-5">
-                            <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-4">Short Term Analysis</span>
-                            <div class="flex justify-between items-center bg-white/5 p-3 rounded-lg mb-4">
-                                <span class="text-[11px] font-bold text-white uppercase">${cols[3]}</span>
-                                <span class="bg-blue-600 text-white px-2 py-1 rounded text-[10px] font-black font-mono">${cols[4]}% Confidence</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400 leading-relaxed italic border-t border-white/5 pt-3">"${cols[5]}"</p>
-                        </div>
-                        <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-5">
-                            <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest block mb-4">Long Term Analysis</span>
-                            <div class="flex justify-between items-center bg-white/5 p-3 rounded-lg mb-4">
-                                <span class="text-[11px] font-bold text-white uppercase">${cols[6]}</span>
-                                <span class="bg-purple-600 text-white px-2 py-1 rounded text-[10px] font-black font-mono">${cols[7]}% Confidence</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400 leading-relaxed italic border-t border-white/5 pt-3">"${cols[8]}"</p>
-                        </div>
-                    </div>
-                `;
+                        <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-5"><span class="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-4">Short Term Analysis</span><div class="flex justify-between items-center bg-white/5 p-3 rounded-lg mb-4"><span class="text-[10px] font-bold text-white uppercase">${cols[3]}</span><span class="bg-blue-600 text-white px-2 py-1 rounded text-[10px] font-black">${cols[4]}%</span></div><p class="text-[11px] text-slate-400 italic">"${cols[5]}"</p></div>
+                        <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-5"><span class="text-[9px] font-black text-purple-400 uppercase tracking-widest block mb-4">Long Term Analysis</span><div class="flex justify-between items-center bg-white/5 p-3 rounded-lg mb-4"><span class="text-[10px] font-bold text-white uppercase">${cols[6]}</span><span class="bg-purple-600 text-white px-2 py-1 rounded text-[10px] font-black">${cols[7]}%</span></div><p class="text-[11px] text-slate-400 italic">"${cols[8]}"</p></div>
+                    </div>`;
                 feed.prepend(card);
             });
         }
@@ -292,15 +272,12 @@
         function applyFilter(range, btn) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active-filter', 'bg-blue-600', 'text-white'));
             btn.classList.add('active-filter', 'bg-blue-600', 'text-white');
-            const now = new Date();
+            const now = Date.now();
             let filtered = allTrades.filter(t => {
-                const tDate = new Date(t.rawTime);
-                if (range === '24h') return (now - tDate) <= (24 * 60 * 60 * 1000);
-                if (range === '7d') return (now - tDate) <= (7 * 24 * 60 * 60 * 1000);
-                if (range === '30d') return (now - tDate) <= (30 * 24 * 60 * 60 * 1000);
+                if (range === '24h') return (now - t.timestamp) <= (24 * 60 * 60 * 1000);
+                if (range === '7d') return (now - t.timestamp) <= (7 * 24 * 60 * 60 * 1000);
                 return true;
-            });
-            filtered.sort((a, b) => a.timestamp - b.timestamp);
+            }).sort((a,b) => a.timestamp - b.timestamp);
             renderChart(filtered.map(t => t.dateLabel), filtered.map(t => t.cumulativePnl));
         }
 
@@ -308,46 +285,36 @@
             const ctx = document.getElementById('performanceChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
             
-            const minVal = Math.min(...data, 0);
-            const maxVal = Math.max(...data, 0);
+            const minVal = Math.min(...data, 0); const maxVal = Math.max(...data, 0);
             const range = maxVal - minVal;
 
             const gradient = ctx.createLinearGradient(0, 0, 0, 350);
             if (range > 0) {
                 const zeroPos = maxVal / range;
-                gradient.addColorStop(0, '#4ade80'); // Green at top
-                gradient.addColorStop(Math.max(0, zeroPos - 0.05), '#4ade80');
-                gradient.addColorStop(Math.min(1, zeroPos + 0.05), '#f87171');
-                gradient.addColorStop(1, '#f87171'); // Red at bottom
-            }
+                gradient.addColorStop(0, '#4ade80'); gradient.addColorStop(Math.max(0, zeroPos - 0.05), '#4ade80');
+                gradient.addColorStop(Math.min(1, zeroPos + 0.05), '#f87171'); gradient.addColorStop(1, '#f87171');
+            } else { gradient.addColorStop(0, (data[0] || 0) >= 0 ? '#4ade80' : '#f87171'); }
 
             chartInstance = new Chart(ctx, {
                 type: 'line',
-                data: { 
-                    labels, 
-                    datasets: [{ 
-                        data, 
-                        borderColor: gradient, 
-                        borderWidth: 3, 
-                        tension: 0.4, 
-                        fill: { target: 'origin', above: 'rgba(74, 222, 128, 0.05)', below: 'rgba(248, 113, 113, 0.05)' },
-                        pointRadius: 0 
-                    }] 
-                },
+                data: { labels, datasets: [{ data, borderColor: gradient, borderWidth: 3, tension: 0.4, fill: { target: 'origin', above: 'rgba(74, 222, 128, 0.05)', below: 'rgba(248, 113, 113, 0.05)' }, pointRadius: 0 }] },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
                         x: { display: true, grid: { display: false }, ticks: { color: '#334155', font: { size: 9 }, maxTicksLimit: 12 } },
-                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 }, callback: v => (v >= 0 ? '+' : '') + '$' + v.toLocaleString() } }
                     }
                 }
             });
         }
 
         function initTV() { new TradingView.widget({ "autosize": true, "symbol": "COINBASE:BTCUSD", "interval": "60", "theme": "dark", "style": "1", "container_id": "tv-chart", "hide_top_toolbar": true, "backgroundColor": "#0b0f1a" }); }
+        
+        // BOOTSTRAP
         initDashboard(); initTV(); updateBTCPrice();
-        setInterval(initDashboard, 60000); 
+        setInterval(updateBTCPrice, 5000); // 5s Price Update
+        setInterval(initDashboard, 60000); // 1m Full Sync
     </script>
 </body>
 </html>
