@@ -13,6 +13,8 @@
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .price-up { color: #4ade80 !important; }
+        .price-down { color: #f87171 !important; }
         .active-filter { background-color: #2563eb !important; color: white !important; }
     </style>
 </head>
@@ -52,11 +54,11 @@
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Daily P&L</p>
-                <p id="daily-pnl" class="text-lg font-mono font-bold text-white">$0.00</p>
+                <p id="daily-pnl" class="text-lg font-mono font-bold">$0.00</p>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Total P&L</p>
-                <div id="total-pnl" class="leading-tight">--</div>
+                <div id="total-pnl" class="leading-tight font-mono font-bold">--</div>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Buying Power</p>
@@ -70,9 +72,12 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                         <div>
                             <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Performance Curve</h3>
+                            <p class="text-[9px] text-slate-600 font-bold uppercase mt-1">Timeline Baseline: March 10</p>
                         </div>
                         <div class="flex gap-1 bg-black/20 p-1 rounded-xl">
                             <button onclick="applyFilter('24h', this)" class="filter-btn text-[9px] font-black uppercase px-3 py-1.5 rounded-lg text-slate-500 transition-all">24H</button>
+                            <button onclick="applyFilter('7d', this)" class="filter-btn text-[9px] font-black uppercase px-3 py-1.5 rounded-lg text-slate-500 transition-all">7D</button>
+                            <button onclick="applyFilter('30d', this)" class="filter-btn text-[9px] font-black uppercase px-3 py-1.5 rounded-lg text-slate-500 transition-all">30D</button>
                             <button onclick="applyFilter('all', this)" class="filter-btn active-filter text-[9px] font-black uppercase px-3 py-1.5 rounded-lg bg-blue-600 text-white transition-all">All Time</button>
                         </div>
                     </div>
@@ -105,7 +110,7 @@
         const STARTING_BALANCE = 100000;
         let chartInstance = null;
         let lastBtcPrice = 0;
-        let allTrades = []; // Store trades globally for linking
+        let allTrades = [];
 
         function parseCSVLine(line) {
             const result = [];
@@ -139,6 +144,7 @@
             try {
                 const response = await fetch(PROXY_URL);
                 const data = await response.json();
+                const today = new Date().toDateString();
                 
                 document.getElementById('live-equity').innerText = `$${parseFloat(data.account.equity).toLocaleString()}`;
                 document.getElementById('buying-power').innerText = `$${parseFloat(data.account.buying_power).toLocaleString()}`;
@@ -147,7 +153,7 @@
                 const feedContainer = document.getElementById('trade-feed'); feedContainer.innerHTML = '';
                 
                 let winCount = 0, closedCount = 0, runningPnl = 0, dailyPnlSum = 0;
-                allTrades = []; // Reset global trades
+                allTrades = [];
 
                 rows.forEach((row) => {
                     const cols = parseCSVLine(row);
@@ -158,19 +164,19 @@
 
                     if (status === "CLOSED") {
                         closedCount++;
-                        if (dateObj.toDateString() === new Date().toDateString()) dailyPnlSum += pnlVal;
+                        if (dateObj.toDateString() === today) dailyPnlSum += pnlVal;
                         if (cols[10]?.toLowerCase() === "win" || pnlVal > 0) winCount++;
                     }
 
                     runningPnl += pnlVal;
-                    // Storing object for matching logic
                     allTrades.push({ 
-                        rawTime: cols[1], // Buy_Time from sheet
+                        rawTime: cols[1], 
                         timestamp: dateObj.getTime(),
                         pnl: pnlVal,
                         symbol: cols[2],
                         cumulativePnl: runningPnl,
-                        status: status
+                        status: status,
+                        dateLabel: dateObj.toLocaleDateString('en-US', {month:'short', day:'numeric'})
                     });
 
                     const isOpen = status === "OPEN";
@@ -189,8 +195,15 @@
                     feedContainer.prepend(item);
                 });
 
-                document.getElementById('daily-pnl').innerText = `$${dailyPnlSum.toFixed(2)}`;
-                document.getElementById('total-pnl').innerText = `$${runningPnl.toLocaleString()}`;
+                // Update Stat Colors
+                const dailyEl = document.getElementById('daily-pnl');
+                dailyEl.innerText = (dailyPnlSum >= 0 ? '+' : '') + `$${dailyPnlSum.toFixed(2)}`;
+                dailyEl.className = `text-lg font-mono font-bold ${dailyPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
+
+                const totalPnlEl = document.getElementById('total-pnl');
+                totalPnlEl.innerText = (runningPnl >= 0 ? '+' : '') + `$${runningPnl.toLocaleString()}`;
+                totalPnlEl.className = `leading-tight font-mono font-bold ${runningPnl >= 0 ? 'text-green-400' : 'text-red-400'}`;
+
                 document.getElementById('trade-count').innerText = closedCount;
                 document.getElementById('win-rate').innerText = `${closedCount > 0 ? Math.round((winCount / closedCount) * 100) : 0}%`;
 
@@ -212,8 +225,6 @@
                 const analysisTime = new Date(cols[0]).getTime();
                 const isExecuted = cols[1].toUpperCase() === 'TRUE';
 
-                // CROSS-REFERENCE LOGIC
-                // Look for any trade that happened within 120s AFTER the analysis
                 const linkedTrade = allTrades.find(t => {
                     const diff = (t.timestamp - analysisTime) / 1000;
                     return diff >= 0 && diff <= 120;
@@ -221,11 +232,18 @@
 
                 let linkedBadge = "";
                 if (linkedTrade) {
-                    linkedBadge = `
-                        <div class="flex items-center gap-2 bg-blue-600/20 border border-blue-500/40 px-3 py-1.5 rounded-lg">
-                            <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-ping"></span>
-                            <span class="text-[9px] font-black text-blue-300 uppercase">Linked Execution: ${linkedTrade.symbol} (+${((linkedTrade.timestamp - analysisTime)/1000).toFixed(0)}s)</span>
-                        </div>`;
+                    let badgeStyle, pnlText;
+                    if (linkedTrade.status === "OPEN" || isNaN(linkedTrade.pnl)) {
+                        badgeStyle = "bg-blue-600/20 text-blue-400 border-blue-500/40";
+                        pnlText = "Currently Active Trade";
+                    } else if (linkedTrade.pnl > 0) {
+                        badgeStyle = "bg-green-600/20 text-green-400 border-green-500/40";
+                        pnlText = `Profit: +$${linkedTrade.pnl.toFixed(2)}`;
+                    } else {
+                        badgeStyle = "bg-red-600/20 text-red-400 border-red-500/40";
+                        pnlText = `Loss: $${linkedTrade.pnl.toFixed(2)}`;
+                    }
+                    linkedBadge = `<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border font-black text-[9px] uppercase tracking-wider ${badgeStyle}">${linkedTrade.symbol} | ${pnlText}</div>`;
                 }
 
                 const statusClass = isExecuted ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30";
@@ -241,17 +259,13 @@
                         </div>
                         <div class="flex items-center gap-3">
                             ${linkedBadge}
-                            <div class="px-4 py-2 rounded-xl border font-black text-[10px] uppercase ${statusClass}">
-                                ${isExecuted ? "Trade Executed" : "No Trade Executed"}
-                            </div>
+                            <div class="px-4 py-2 rounded-xl border font-black text-[10px] uppercase ${statusClass}">${isExecuted ? "Trade Executed" : "No Trade Executed"}</div>
                         </div>
                     </div>
-
                     <div class="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5">
-                        <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-3">Trading Rationale</span>
+                        <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-3 underline decoration-blue-500/30">Trading Rationale</span>
                         <p class="text-xs text-slate-200 font-medium leading-relaxed whitespace-pre-wrap">${cols[2]}</p>
                     </div>
-
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-5">
                             <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-4">Short Term Analysis</span>
@@ -282,19 +296,52 @@
             let filtered = allTrades.filter(t => {
                 const tDate = new Date(t.rawTime);
                 if (range === '24h') return (now - tDate) <= (24 * 60 * 60 * 1000);
+                if (range === '7d') return (now - tDate) <= (7 * 24 * 60 * 60 * 1000);
+                if (range === '30d') return (now - tDate) <= (30 * 24 * 60 * 60 * 1000);
                 return true;
             });
             filtered.sort((a, b) => a.timestamp - b.timestamp);
-            renderChart(filtered.map(t => t.rawTime), filtered.map(t => t.cumulativePnl));
+            renderChart(filtered.map(t => t.dateLabel), filtered.map(t => t.cumulativePnl));
         }
 
         function renderChart(labels, data) {
             const ctx = document.getElementById('performanceChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
+            
+            const minVal = Math.min(...data, 0);
+            const maxVal = Math.max(...data, 0);
+            const range = maxVal - minVal;
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+            if (range > 0) {
+                const zeroPos = maxVal / range;
+                gradient.addColorStop(0, '#4ade80'); // Green at top
+                gradient.addColorStop(Math.max(0, zeroPos - 0.05), '#4ade80');
+                gradient.addColorStop(Math.min(1, zeroPos + 0.05), '#f87171');
+                gradient.addColorStop(1, '#f87171'); // Red at bottom
+            }
+
             chartInstance = new Chart(ctx, {
                 type: 'line',
-                data: { labels, datasets: [{ data, borderColor: '#2563eb', borderWidth: 3, tension: 0.4, pointRadius: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' } } } }
+                data: { 
+                    labels, 
+                    datasets: [{ 
+                        data, 
+                        borderColor: gradient, 
+                        borderWidth: 3, 
+                        tension: 0.4, 
+                        fill: { target: 'origin', above: 'rgba(74, 222, 128, 0.05)', below: 'rgba(248, 113, 113, 0.05)' },
+                        pointRadius: 0 
+                    }] 
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: true, grid: { display: false }, ticks: { color: '#334155', font: { size: 9 }, maxTicksLimit: 12 } },
+                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+                    }
+                }
             });
         }
 
