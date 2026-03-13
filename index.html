@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trading OS Pro | v1.8</title>
+    <title>Trading OS Pro | v1.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -58,7 +58,7 @@
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Total P&L</p>
-                <p id="total-pnl" class="text-lg font-mono font-bold text-white">--</p>
+                <div id="total-pnl" class="leading-tight">--</div>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5 col-span-2 lg:col-span-1">
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Buying Power</p>
@@ -89,6 +89,7 @@
 
     <script>
         const PROXY_URL = "https://tradingproxy.iamkevinkelly.workers.dev"; 
+        const STARTING_BALANCE = 100000;
         let chartInstance = null;
         let lastBtcPrice = 0;
 
@@ -123,7 +124,7 @@
             try {
                 const response = await fetch(PROXY_URL);
                 const data = await response.json();
-                const today = new Date().toDateString(); // For Daily P&L calculation
+                const today = new Date().toDateString();
                 
                 document.getElementById('live-equity').innerText = `$${parseFloat(data.account.equity).toLocaleString()}`;
                 document.getElementById('buying-power').innerText = `$${parseFloat(data.account.buying_power).toLocaleString()}`;
@@ -148,12 +149,7 @@
                     if (status === "CLOSED") {
                         closedCount++;
                         totalPnlSum += pnlVal;
-                        
-                        // Check if trade was closed today
-                        if (dateObj.toDateString() === today) {
-                            dailyPnlSum += pnlVal;
-                        }
-
+                        if (dateObj.toDateString() === today) dailyPnlSum += pnlVal;
                         if (outcome.toLowerCase() === "win" || pnlVal > 0) winCount++;
                     }
 
@@ -187,20 +183,24 @@
                     feedContainer.prepend(item);
                 });
 
-                // UPDATE P&L BOXES
+                // ROI & P&L LOGIC
+                const totalRoi = (totalPnlSum / STARTING_BALANCE) * 100;
+                
                 const dailyEl = document.getElementById('daily-pnl');
                 dailyEl.innerText = (dailyPnlSum >= 0 ? '+' : '') + `$${dailyPnlSum.toFixed(2)}`;
                 dailyEl.className = `text-lg font-mono font-bold ${dailyPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
 
                 const totalPnlEl = document.getElementById('total-pnl');
-                totalPnlEl.innerText = (totalPnlSum >= 0 ? '+' : '') + `$${totalPnlSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                totalPnlEl.className = `text-lg font-mono font-bold ${totalPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
+                totalPnlEl.innerHTML = `
+                    <span class="block text-lg font-bold">${totalPnlSum >= 0 ? '+' : ''}$${totalPnlSum.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                    <span class="text-[11px] font-bold opacity-90">${totalPnlSum >= 0 ? '+' : ''}${totalRoi.toFixed(2)}%</span>
+                `;
+                totalPnlEl.className = `font-mono ${totalPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
 
                 document.getElementById('trade-count').innerText = closedCount;
                 const wr = closedCount > 0 ? Math.round((winCount / closedCount) * 100) : 0;
                 document.getElementById('win-rate').innerText = `${wr}%`;
                 document.getElementById('last-sync').innerText = `Sync: ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
-                
                 renderChart(labels, points);
             } catch (err) { console.error("Sync Failed", err); } finally { icon.classList.remove('animate-spin'); }
         }
