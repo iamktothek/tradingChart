@@ -20,7 +20,7 @@
     <div class="max-w-[1600px] mx-auto">
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
-                <h1 class="text-2xl font-black text-white tracking-tighter uppercase italic">Trading<span class="text-blue-500">OS</span> <span class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded ml-2 uppercase font-bold text-white bg-blue-600">PRO v2.0</span></h1>
+                <h1 class="text-2xl font-black text-white tracking-tighter uppercase italic">Trading<span class="text-blue-500">OS</span> <span class="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded ml-2 uppercase font-bold">PRO v2.0</span></h1>
                 <p id="last-sync" class="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-1 italic">Live Terminal Sync</p>
             </div>
             <div class="flex items-center gap-4 bg-slate-900/80 p-3 px-6 rounded-2xl border border-white/5 shadow-xl">
@@ -58,7 +58,7 @@
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Total P&L</p>
                 <div id="total-pnl" class="leading-tight">--</div>
             </div>
-            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5 col-span-2 lg:col-span-1">
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Buying Power</p>
                 <p id="buying-power" class="text-lg font-mono font-bold text-slate-400">--</p>
             </div>
@@ -69,19 +69,16 @@
                 <div class="bg-slate-900/50 p-6 rounded-3xl border border-white/5 shadow-2xl">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                         <div>
-                            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Net P&L Performance</h3>
-                            <p class="text-[9px] text-slate-600 font-bold uppercase mt-1">Timeline Baseline: March 10</p>
+                            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Performance Curve</h3>
                         </div>
-                        <div class="flex gap-1 bg-black/20 p-1 rounded-xl border border-white/5">
-                            <button onclick="applyFilter('24h', this)" class="filter-btn text-[9px] font-black uppercase px-3 py-1.5 rounded-lg text-slate-500 hover:text-white transition-all">24H</button>
-                            <button onclick="applyFilter('7d', this)" class="filter-btn text-[9px] font-black uppercase px-3 py-1.5 rounded-lg text-slate-500 hover:text-white transition-all">7D</button>
-                            <button onclick="applyFilter('30d', this)" class="filter-btn text-[9px] font-black uppercase px-3 py-1.5 rounded-lg text-slate-500 hover:text-white transition-all">30D</button>
-                            <button onclick="applyFilter('all', this)" class="filter-btn active-filter text-[9px] font-black uppercase px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow-lg transition-all">All Time</button>
+                        <div class="flex gap-1 bg-black/20 p-1 rounded-xl">
+                            <button onclick="applyFilter('24h', this)" class="filter-btn text-[9px] font-black uppercase px-3 py-1.5 rounded-lg text-slate-500 transition-all">24H</button>
+                            <button onclick="applyFilter('all', this)" class="filter-btn active-filter text-[9px] font-black uppercase px-3 py-1.5 rounded-lg bg-blue-600 text-white transition-all">All Time</button>
                         </div>
                     </div>
-                    <div class="h-[350px] lg:h-[400px]"><canvas id="performanceChart"></canvas></div>
+                    <div class="h-[350px]"><canvas id="performanceChart"></canvas></div>
                 </div>
-                <div class="bg-slate-900/50 rounded-3xl border border-white/5 overflow-hidden h-[450px] shadow-2xl">
+                <div class="bg-slate-900/50 rounded-3xl border border-white/5 overflow-hidden h-[450px]">
                     <div id="tv-chart" class="h-full"></div>
                 </div>
             </div>
@@ -98,9 +95,8 @@
         </div>
 
         <div class="bg-slate-900/50 p-6 rounded-3xl border border-white/5 shadow-2xl mb-12">
-            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Decision Analysis Feed</h3>
-            <div id="decision-feed" class="flex flex-col gap-8 max-h-[1200px] overflow-y-auto pr-4 custom-scrollbar">
-                </div>
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Linked Decision Analysis Feed</h3>
+            <div id="decision-feed" class="flex flex-col gap-8 max-h-[1200px] overflow-y-auto pr-4 custom-scrollbar"></div>
         </div>
     </div>
 
@@ -109,9 +105,8 @@
         const STARTING_BALANCE = 100000;
         let chartInstance = null;
         let lastBtcPrice = 0;
-        let allTrades = [];
+        let allTrades = []; // Store trades globally for linking
 
-        // Helper: Parse CSV correctly even with commas in quotes
         function parseCSVLine(line) {
             const result = [];
             let current = '';
@@ -119,10 +114,8 @@
             for (let i = 0; i < line.length; i++) {
                 const char = line[i];
                 if (char === '"') inQuotes = !inQuotes;
-                else if (char === ',' && !inQuotes) {
-                    result.push(current.trim());
-                    current = '';
-                } else current += char;
+                else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+                else current += char;
             }
             result.push(current.trim());
             return result;
@@ -134,20 +127,11 @@
                 const data = await res.json();
                 const price = parseFloat(data.data.amount);
                 const btcEl = document.getElementById('btc-price');
-                const trendEl = document.getElementById('btc-trend');
                 if (price > 0) {
                     btcEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                    if (lastBtcPrice > 0 && price !== lastBtcPrice) {
-                        const isUp = price > lastBtcPrice;
-                        btcEl.classList.remove('text-orange-500');
-                        btcEl.classList.add(isUp ? 'price-up' : 'price-down');
-                        trendEl.innerHTML = isUp ? '▲' : '▼';
-                        trendEl.className = `text-xs ${isUp ? 'text-green-500' : 'text-red-500'}`;
-                        setTimeout(() => { btcEl.classList.remove('price-up', 'price-down'); btcEl.classList.add('text-orange-500'); }, 1000);
-                    }
                     lastBtcPrice = price;
                 }
-            } catch (e) { console.error("Ticker Fail"); }
+            } catch (e) {}
         }
 
         async function initDashboard() {
@@ -155,7 +139,6 @@
             try {
                 const response = await fetch(PROXY_URL);
                 const data = await response.json();
-                const today = new Date().toDateString();
                 
                 document.getElementById('live-equity').innerText = `$${parseFloat(data.account.equity).toLocaleString()}`;
                 document.getElementById('buying-power').innerText = `$${parseFloat(data.account.buying_power).toLocaleString()}`;
@@ -164,7 +147,7 @@
                 const feedContainer = document.getElementById('trade-feed'); feedContainer.innerHTML = '';
                 
                 let winCount = 0, closedCount = 0, runningPnl = 0, dailyPnlSum = 0;
-                allTrades = [];
+                allTrades = []; // Reset global trades
 
                 rows.forEach((row) => {
                     const cols = parseCSVLine(row);
@@ -172,44 +155,49 @@
                     const dateObj = new Date(cols[1]); 
                     const status = cols[7]?.toUpperCase() || "";
                     const pnlVal = parseFloat(cols[9]) || 0;
-                    const outcome = cols[10]?.trim() || "";
 
                     if (status === "CLOSED") {
                         closedCount++;
-                        if (dateObj.toDateString() === today) dailyPnlSum += pnlVal;
-                        if (outcome.toLowerCase() === "win" || pnlVal > 0) winCount++;
+                        if (dateObj.toDateString() === new Date().toDateString()) dailyPnlSum += pnlVal;
+                        if (cols[10]?.toLowerCase() === "win" || pnlVal > 0) winCount++;
                     }
 
                     runningPnl += pnlVal;
-                    allTrades.push({ timestamp: cols[1], dateLabel: dateObj.toLocaleDateString('en-US', {month:'short', day:'numeric'}), pnl: pnlVal, cumulativePnl: runningPnl });
+                    // Storing object for matching logic
+                    allTrades.push({ 
+                        rawTime: cols[1], // Buy_Time from sheet
+                        timestamp: dateObj.getTime(),
+                        pnl: pnlVal,
+                        symbol: cols[2],
+                        cumulativePnl: runningPnl,
+                        status: status
+                    });
 
                     const isOpen = status === "OPEN";
                     const item = document.createElement('div');
                     item.className = `p-4 flex flex-col gap-2 ${isOpen ? 'bg-blue-500/10 border-l-4 border-l-blue-500' : ''}`;
                     item.innerHTML = `
                         <div class="flex justify-between items-center text-[10px] font-mono text-slate-500">
-                            <span>${dateObj.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})}</span>
+                            <span>${dateObj.toLocaleString()}</span>
                             <span class="px-2 py-0.5 rounded font-black uppercase ${isOpen ? 'bg-blue-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}">${status}</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <div><h4 class="text-sm font-black text-blue-400 mb-1">${cols[2]}</h4><div class="flex gap-2 text-[9px] font-mono"><span class="text-green-500 font-bold uppercase tracking-tighter">TP: ${cols[4]}</span><span class="text-red-500 font-bold uppercase tracking-tighter">SL: ${cols[5]}</span></div></div>
-                            <div class="text-right"><p class="text-xs font-mono font-bold ${pnlVal >= 0 ? 'text-green-400' : 'text-red-400'}">${isOpen ? 'LIVE' : (pnlVal > 0 ? '+' : '') + pnlVal.toFixed(2)}</p></div>
+                            <div><h4 class="text-sm font-black text-blue-400">${cols[2]}</h4></div>
+                            <div class="text-right font-mono font-bold ${pnlVal >= 0 ? 'text-green-400' : 'text-red-400'}">${isOpen ? 'LIVE' : pnlVal.toFixed(2)}</div>
                         </div>
                     `;
                     feedContainer.prepend(item);
                 });
 
-                const totalPnlSum = runningPnl;
-                document.getElementById('daily-pnl').innerText = (dailyPnlSum >= 0 ? '+' : '') + `$${dailyPnlSum.toFixed(2)}`;
-                document.getElementById('total-pnl').innerHTML = `<span class="block text-lg font-bold">${totalPnlSum >= 0 ? '+' : ''}$${totalPnlSum.toLocaleString(undefined, {minimumFractionDigits: 2})}</span><span class="text-[11px] font-bold opacity-90">${((totalPnlSum / STARTING_BALANCE) * 100).toFixed(2)}%</span>`;
+                document.getElementById('daily-pnl').innerText = `$${dailyPnlSum.toFixed(2)}`;
+                document.getElementById('total-pnl').innerText = `$${runningPnl.toLocaleString()}`;
                 document.getElementById('trade-count').innerText = closedCount;
                 document.getElementById('win-rate').innerText = `${closedCount > 0 ? Math.round((winCount / closedCount) * 100) : 0}%`;
 
                 if (data.decisionsData) renderDecisionFeed(data.decisionsData);
                 applyFilter('all', document.querySelector('.active-filter'));
-                document.getElementById('last-sync').innerText = `Sync: ${new Date().toLocaleTimeString()}`;
 
-            } catch (err) { console.error("Sync Error:", err); } finally { icon.classList.remove('animate-spin'); }
+            } catch (err) { console.error(err); } finally { icon.classList.remove('animate-spin'); }
         }
 
         function renderDecisionFeed(csvString) {
@@ -221,49 +209,62 @@
                 const cols = parseCSVLine(row);
                 if (cols.length < 9) return;
                 
-                const timeStr = cols[0];
-                const dateRaw = new Date(timeStr);
-                const dateNorm = dateRaw.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) + ' — ' + dateRaw.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-
+                const analysisTime = new Date(cols[0]).getTime();
                 const isExecuted = cols[1].toUpperCase() === 'TRUE';
+
+                // CROSS-REFERENCE LOGIC
+                // Look for any trade that happened within 120s AFTER the analysis
+                const linkedTrade = allTrades.find(t => {
+                    const diff = (t.timestamp - analysisTime) / 1000;
+                    return diff >= 0 && diff <= 120;
+                });
+
+                let linkedBadge = "";
+                if (linkedTrade) {
+                    linkedBadge = `
+                        <div class="flex items-center gap-2 bg-blue-600/20 border border-blue-500/40 px-3 py-1.5 rounded-lg">
+                            <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-ping"></span>
+                            <span class="text-[9px] font-black text-blue-300 uppercase">Linked Execution: ${linkedTrade.symbol} (+${((linkedTrade.timestamp - analysisTime)/1000).toFixed(0)}s)</span>
+                        </div>`;
+                }
+
                 const statusClass = isExecuted ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30";
+                const dateNorm = new Date(cols[0]).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) + ' — ' + new Date(cols[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
                 const card = document.createElement('div');
                 card.className = "bg-black/40 border border-white/5 rounded-3xl p-6 flex flex-col gap-6 shadow-xl w-full";
                 card.innerHTML = `
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-white/5">
                         <div class="flex flex-col">
-                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Timestamp</span>
+                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Analysis Log</span>
                             <span class="text-sm font-bold text-white font-mono">${dateNorm}</span>
                         </div>
-                        <div class="px-4 py-2 rounded-xl border font-black text-[10px] uppercase tracking-tighter ${statusClass}">
-                            ${isExecuted ? "Trade Executed" : "No Trade Executed"}
+                        <div class="flex items-center gap-3">
+                            ${linkedBadge}
+                            <div class="px-4 py-2 rounded-xl border font-black text-[10px] uppercase ${statusClass}">
+                                ${isExecuted ? "Trade Executed" : "No Trade Executed"}
+                            </div>
                         </div>
                     </div>
 
                     <div class="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5">
-                        <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-3 underline decoration-blue-500/30">Trading Rationale</span>
+                        <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-3">Trading Rationale</span>
                         <p class="text-xs text-slate-200 font-medium leading-relaxed whitespace-pre-wrap">${cols[2]}</p>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-5">
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Short Term Analysis</span>
-                            </div>
+                            <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-4">Short Term Analysis</span>
                             <div class="flex justify-between items-center bg-white/5 p-3 rounded-lg mb-4">
-                                <span class="text-[11px] font-bold text-white uppercase tracking-wider">${cols[3]}</span>
+                                <span class="text-[11px] font-bold text-white uppercase">${cols[3]}</span>
                                 <span class="bg-blue-600 text-white px-2 py-1 rounded text-[10px] font-black font-mono">${cols[4]}% Confidence</span>
                             </div>
                             <p class="text-[11px] text-slate-400 leading-relaxed italic border-t border-white/5 pt-3">"${cols[5]}"</p>
                         </div>
-
                         <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-5">
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest">Long Term Analysis</span>
-                            </div>
+                            <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest block mb-4">Long Term Analysis</span>
                             <div class="flex justify-between items-center bg-white/5 p-3 rounded-lg mb-4">
-                                <span class="text-[11px] font-bold text-white uppercase tracking-wider">${cols[6]}</span>
+                                <span class="text-[11px] font-bold text-white uppercase">${cols[6]}</span>
                                 <span class="bg-purple-600 text-white px-2 py-1 rounded text-[10px] font-black font-mono">${cols[7]}% Confidence</span>
                             </div>
                             <p class="text-[11px] text-slate-400 leading-relaxed italic border-t border-white/5 pt-3">"${cols[8]}"</p>
@@ -279,45 +280,27 @@
             btn.classList.add('active-filter', 'bg-blue-600', 'text-white');
             const now = new Date();
             let filtered = allTrades.filter(t => {
-                const tDate = new Date(t.timestamp);
+                const tDate = new Date(t.rawTime);
                 if (range === '24h') return (now - tDate) <= (24 * 60 * 60 * 1000);
-                if (range === '7d') return (now - tDate) <= (7 * 24 * 60 * 60 * 1000);
-                if (range === '30d') return (now - tDate) <= (30 * 24 * 60 * 60 * 1000);
                 return true;
             });
-            filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-            renderChart(filtered.map(t => t.dateLabel), filtered.map(t => t.cumulativePnl));
+            filtered.sort((a, b) => a.timestamp - b.timestamp);
+            renderChart(filtered.map(t => t.rawTime), filtered.map(t => t.cumulativePnl));
         }
 
         function renderChart(labels, data) {
             const ctx = document.getElementById('performanceChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
-            const minVal = Math.min(...data, 0), maxVal = Math.max(...data, 0), range = maxVal - minVal;
-            const gradient = ctx.createLinearGradient(0, 0, 0, 400); 
-            if (range > 0) {
-                const zeroPos = maxVal / range; 
-                gradient.addColorStop(0, '#4ade80');
-                gradient.addColorStop(Math.max(0, zeroPos - 0.05), '#4ade80');
-                gradient.addColorStop(Math.min(1, zeroPos + 0.05), '#f87171');
-                gradient.addColorStop(1, '#f87171');
-            } else { gradient.addColorStop(0, (data[0] || 0) >= 0 ? '#4ade80' : '#f87171'); }
             chartInstance = new Chart(ctx, {
                 type: 'line',
-                data: { labels, datasets: [{ data, borderColor: gradient, borderWidth: 3, tension: 0.4, fill: { target: 'origin', above: 'rgba(74, 222, 128, 0.05)', below: 'rgba(248, 113, 113, 0.05)' }, pointRadius: 0 }] },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { display: true, grid: { display: false }, ticks: { color: '#334155', font: { size: 9 }, maxTicksLimit: 10 } },
-                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 }, callback: v => (v >= 0 ? '+' : '') + '$' + v.toLocaleString() } }
-                    }
-                }
+                data: { labels, datasets: [{ data, borderColor: '#2563eb', borderWidth: 3, tension: 0.4, pointRadius: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' } } } }
             });
         }
 
-        function initTV() { new TradingView.widget({ "autosize": true, "symbol": "COINBASE:BTCUSD", "interval": "60", "theme": "dark", "style": "1", "container_id": "tv-chart", "hide_top_toolbar": true, "allow_symbol_change": true, "backgroundColor": "#0b0f1a" }); }
+        function initTV() { new TradingView.widget({ "autosize": true, "symbol": "COINBASE:BTCUSD", "interval": "60", "theme": "dark", "style": "1", "container_id": "tv-chart", "hide_top_toolbar": true, "backgroundColor": "#0b0f1a" }); }
         initDashboard(); initTV(); updateBTCPrice();
-        setInterval(initDashboard, 60000); setInterval(updateBTCPrice, 5000); 
+        setInterval(initDashboard, 60000); 
     </script>
 </body>
 </html>
