@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trading OS Pro | v1.6</title>
+    <title>Trading OS Pro | v1.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -36,7 +36,7 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+        <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">BTC / USD</p>
                 <div class="flex items-center gap-2">
@@ -49,12 +49,16 @@
                 <p id="win-rate" class="text-lg font-mono font-bold text-white">0%</p>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Closed Trades</p>
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Trades</p>
                 <p id="trade-count" class="text-lg font-mono font-bold text-blue-400">0</p>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Session P&L</p>
-                <p id="daily-pnl" class="text-lg font-mono font-bold text-white">--</p>
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Daily P&L</p>
+                <p id="daily-pnl" class="text-lg font-mono font-bold text-white">$0.00</p>
+            </div>
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Total P&L</p>
+                <p id="total-pnl" class="text-lg font-mono font-bold text-white">--</p>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5 col-span-2 lg:col-span-1">
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Buying Power</p>
@@ -72,7 +76,6 @@
                     <div id="tv-chart" class="h-full"></div>
                 </div>
             </div>
-
             <div class="lg:col-span-5 bg-slate-900/50 rounded-3xl border border-white/5 flex flex-col overflow-hidden shadow-2xl">
                 <div class="p-4 border-b border-white/5 bg-slate-900/80 flex justify-between">
                     <h3 class="text-[10px] font-black text-slate-400 uppercase">Execution Details</h3>
@@ -89,7 +92,6 @@
         let chartInstance = null;
         let lastBtcPrice = 0;
 
-        // BTC PRICE VIA COINBASE (RELIABLE)
         async function updateBTCPrice() {
             try {
                 const res = await fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot');
@@ -121,25 +123,20 @@
             try {
                 const response = await fetch(PROXY_URL);
                 const data = await response.json();
+                const today = new Date().toDateString(); // For Daily P&L calculation
                 
                 document.getElementById('live-equity').innerText = `$${parseFloat(data.account.equity).toLocaleString()}`;
                 document.getElementById('buying-power').innerText = `$${parseFloat(data.account.buying_power).toLocaleString()}`;
-                
-                const pnl = data.account.equity - data.account.last_equity;
-                const pnlEl = document.getElementById('daily-pnl');
-                pnlEl.innerText = (pnl >= 0 ? '+' : '') + `$${pnl.toFixed(2)}`;
-                pnlEl.className = `text-lg font-mono font-bold ${pnl >= 0 ? 'text-green-400' : 'text-red-400'}`;
 
                 const rows = data.sheetData.split('\n').slice(1).filter(r => r.trim() !== "" && r.includes(','));
                 const feedContainer = document.getElementById('trade-feed'); feedContainer.innerHTML = '';
                 
-                let winCount = 0, closedCount = 0, runningEquity = 0, labels = [], points = [];
+                let winCount = 0, closedCount = 0, runningEquity = 0, totalPnlSum = 0, dailyPnlSum = 0, labels = [], points = [];
 
                 rows.forEach((row) => {
                     const cols = row.split(',');
                     if (cols.length < 11) return;
 
-                    // NORMAL DATE FORMAT
                     const dateObj = new Date(cols[1]); 
                     const formattedDate = isNaN(dateObj) ? cols[1] : dateObj.toLocaleString('en-US', {
                         month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
@@ -150,6 +147,13 @@
 
                     if (status === "CLOSED") {
                         closedCount++;
+                        totalPnlSum += pnlVal;
+                        
+                        // Check if trade was closed today
+                        if (dateObj.toDateString() === today) {
+                            dailyPnlSum += pnlVal;
+                        }
+
                         if (outcome.toLowerCase() === "win" || pnlVal > 0) winCount++;
                     }
 
@@ -169,8 +173,8 @@
                             <div>
                                 <h4 class="text-sm font-black text-blue-400 leading-none mb-1">${symbol}</h4>
                                 <div class="flex gap-2 text-[9px] font-mono">
-                                    <span class="text-green-500 font-bold">TP: ${tp}</span>
-                                    <span class="text-red-500 font-bold">SL: ${sl}</span>
+                                    <span class="text-green-500 font-bold uppercase">TP: ${tp}</span>
+                                    <span class="text-red-500 font-bold uppercase">SL: ${sl}</span>
                                 </div>
                             </div>
                             <div class="text-right">
@@ -182,6 +186,15 @@
                     `;
                     feedContainer.prepend(item);
                 });
+
+                // UPDATE P&L BOXES
+                const dailyEl = document.getElementById('daily-pnl');
+                dailyEl.innerText = (dailyPnlSum >= 0 ? '+' : '') + `$${dailyPnlSum.toFixed(2)}`;
+                dailyEl.className = `text-lg font-mono font-bold ${dailyPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
+
+                const totalPnlEl = document.getElementById('total-pnl');
+                totalPnlEl.innerText = (totalPnlSum >= 0 ? '+' : '') + `$${totalPnlSum.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                totalPnlEl.className = `text-lg font-mono font-bold ${totalPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
 
                 document.getElementById('trade-count').innerText = closedCount;
                 const wr = closedCount > 0 ? Math.round((winCount / closedCount) * 100) : 0;
