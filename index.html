@@ -3,30 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trading OS Pro | v2.2</title>
+    <title>Trading OS Pro | v3.0</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #cbd5e1; -webkit-tap-highlight-color: transparent; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .price-up { color: #4ade80 !important; }
         .price-down { color: #f87171 !important; }
-        #btc-price { transition: all 0.3s ease; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body class="p-3 lg:p-8">
     <div class="max-w-[1600px] mx-auto">
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
-                <h1 class="text-2xl font-black text-white tracking-tighter uppercase">Trading<span class="text-blue-500">OS</span></h1>
-                <p id="last-sync" class="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Live Terminal</p>
+                <h1 class="text-2xl font-black text-white tracking-tighter uppercase">Trading<span class="text-blue-500">OS</span> <span class="text-[10px] text-slate-500 font-normal">v3.0</span></h1>
+                <p id="last-sync" class="text-[9px] font-bold text-slate-600 uppercase tracking-widest">System Live</p>
             </div>
             <div class="flex items-center justify-between w-full sm:w-auto gap-4 bg-slate-900/80 p-3 px-6 rounded-2xl border border-white/5 shadow-xl">
                 <div class="text-left sm:text-right">
@@ -63,14 +63,31 @@
                 <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Total P&L</p>
                 <div id="total-pnl" class="leading-tight font-mono">--</div>
             </div>
-            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5 col-span-2 lg:col-span-1">
-                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Buying Power</p>
-                <p id="buying-power" class="text-lg font-mono font-bold text-slate-400">--</p>
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Confidence</p>
+                <p id="node-confidence" class="text-lg font-mono font-bold text-emerald-500">84%</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div class="lg:col-span-7 space-y-6">
+                <div class="glass p-4 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex items-center gap-3 p-3 bg-white/5 rounded-2xl">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase">NODE_SENTIMENT_01</p>
+                            <p class="text-xs text-white">Sentiment: Bullish Bias</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-white/5 rounded-2xl">
+                        <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase">NODE_VOLATILITY_04</p>
+                            <p class="text-xs text-white">ATR: Normal Range</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bg-slate-900/50 p-4 sm:p-6 rounded-3xl border border-white/5 shadow-2xl">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-[10px] font-black text-slate-500 uppercase">Growth Performance</h3>
@@ -87,11 +104,13 @@
                     <div id="tv-chart" class="h-full"></div>
                 </div>
             </div>
+
             <div class="lg:col-span-5 bg-slate-900/50 rounded-3xl border border-white/5 flex flex-col overflow-hidden shadow-2xl">
-                <div class="p-4 border-b border-white/5 bg-slate-900/80">
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase">Trade Execution Feed</h3>
+                <div class="p-4 border-b border-white/5 bg-slate-900/80 flex justify-between items-center">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase">Execution Feed</h3>
+                    <span class="text-[9px] text-emerald-500 font-mono">LIVE_WORKER_FEED</span>
                 </div>
-                <div class="overflow-y-auto custom-scrollbar h-[600px] lg:h-[860px]">
+                <div class="overflow-y-auto custom-scrollbar h-[600px] lg:h-[1050px]">
                     <div id="trade-feed" class="divide-y divide-white/5"></div>
                 </div>
             </div>
@@ -99,11 +118,13 @@
     </div>
 
     <script>
+        // --- CONFIGURATION ---
         const PROXY_URL = "https://tradingproxy.iamkevinkelly.workers.dev"; 
         const STARTING_BALANCE = 100000;
+        
         let chartInstance = null;
         let lastBtcPrice = 0;
-        let rawPoints = []; // Stores { x: Date, y: PnL }
+        let rawPoints = []; 
         let currentFilter = 'all';
 
         async function updateBTCPrice() {
@@ -140,16 +161,15 @@
                 const today = new Date().toDateString();
                 
                 document.getElementById('live-equity').innerText = `$${parseFloat(data.account.equity).toLocaleString()}`;
-                document.getElementById('buying-power').innerText = `$${parseFloat(data.account.buying_power).toLocaleString()}`;
 
+                // Process Sheet CSV Data
                 const rows = data.sheetData.split('\n').slice(1).filter(r => r.trim() !== "" && r.includes(','));
                 const sortedRows = rows.sort((a, b) => new Date(a.split(',')[1]) - new Date(b.split(',')[1]));
                 
                 const feedContainer = document.getElementById('trade-feed'); feedContainer.innerHTML = '';
                 
-                // Baseline: March 10th at 0
+                // Reset baseline
                 rawPoints = [{ x: new Date("2026-03-10T00:00:00").getTime(), y: 0 }];
-                
                 let winCount = 0, closedCount = 0, runningEquity = 0, totalPnlSum = 0, dailyPnlSum = 0;
 
                 sortedRows.forEach((row) => {
@@ -163,7 +183,6 @@
                         totalPnlSum += pnlVal;
                         runningEquity += pnlVal;
                         rawPoints.push({ x: dateObj.getTime(), y: runningEquity });
-                        
                         if (dateObj.toDateString() === today) dailyPnlSum += pnlVal;
                         if (outcome.toLowerCase() === "win" || pnlVal > 0) winCount++;
                     }
@@ -191,7 +210,7 @@
                     feedContainer.prepend(item);
                 });
 
-                // Update Stats
+                // Stats Updates
                 const totalRoi = (totalPnlSum / STARTING_BALANCE) * 100;
                 document.getElementById('daily-pnl').innerText = (dailyPnlSum >= 0 ? '+' : '') + `$${dailyPnlSum.toFixed(2)}`;
                 document.getElementById('total-pnl').innerHTML = `
@@ -207,6 +226,7 @@
             } catch (err) { console.error("Sync Failed", err); } finally { icon.classList.remove('animate-spin'); }
         }
 
+        // --- CHART LOGIC ---
         function updateChartFilter(range) {
             currentFilter = range;
             ['24h', '7d', '30d', 'all'].forEach(id => {
@@ -249,19 +269,8 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: {
-                            type: 'time',
-                            time: { unit: 'day', displayFormats: { day: 'MMM d' } },
-                            grid: { display: false },
-                            ticks: { color: '#64748b', font: { size: 9 }, maxTicksLimit: 7 }
-                        },
-                        y: {
-                            grid: { 
-                                color: (c) => c.tick.value === 0 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.05)',
-                                lineWidth: (c) => c.tick.value === 0 ? 2 : 1
-                            },
-                            ticks: { color: '#64748b', font: { size: 10 } }
-                        }
+                        x: { type: 'time', time: { unit: 'day', displayFormats: { day: 'MMM d' } }, grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 }, maxTicksLimit: 7 } },
+                        y: { grid: { color: (c) => c.tick.value === 0 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.05)', lineWidth: (c) => c.tick.value === 0 ? 2 : 1 }, ticks: { color: '#64748b', font: { size: 10 } } }
                     }
                 }
             });
@@ -271,6 +280,7 @@
             new TradingView.widget({ "autosize": true, "symbol": "COINBASE:BTCUSD", "interval": "60", "theme": "dark", "style": "1", "container_id": "tv-chart", "hide_top_toolbar": true, "allow_symbol_change": true }); 
         }
 
+        // Initialize
         initDashboard(); initTV(); updateBTCPrice();
         setInterval(initDashboard, 60000); 
         setInterval(updateBTCPrice, 5000); 
