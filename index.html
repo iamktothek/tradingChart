@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trading OS Pro | v3.0</title>
+    <title>Trading OS Pro | v3.5</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
@@ -19,13 +19,16 @@
         .price-up { color: #4ade80 !important; }
         .price-down { color: #f87171 !important; }
         .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+        .card-long { border-left: 4px solid #10b981; }
+        .card-short { border-left: 4px solid #f43f5e; }
+        .card-neutral { border-left: 4px solid #475569; }
     </style>
 </head>
 <body class="p-3 lg:p-8">
     <div class="max-w-[1600px] mx-auto">
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
-                <h1 class="text-2xl font-black text-white tracking-tighter uppercase">Trading<span class="text-blue-500">OS</span> <span class="text-[10px] text-slate-500 font-normal">v3.0</span></h1>
+                <h1 class="text-2xl font-black text-white tracking-tighter uppercase">Trading<span class="text-blue-500">OS</span> <span class="text-[10px] text-slate-500 font-normal tracking-widest">DECISION_ENGINE</span></h1>
                 <p id="last-sync" class="text-[9px] font-bold text-slate-600 uppercase tracking-widest">System Live</p>
             </div>
             <div class="flex items-center justify-between w-full sm:w-auto gap-4 bg-slate-900/80 p-3 px-6 rounded-2xl border border-white/5 shadow-xl">
@@ -52,7 +55,7 @@
                 <p id="win-rate" class="text-lg font-mono font-bold text-white">0%</p>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Trades</p>
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Total Reports</p>
                 <p id="trade-count" class="text-lg font-mono font-bold text-blue-400">0</p>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
@@ -64,61 +67,43 @@
                 <div id="total-pnl" class="leading-tight font-mono">--</div>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Confidence</p>
-                <p id="node-confidence" class="text-lg font-mono font-bold text-emerald-500">84%</p>
+                <p class="text-slate-500 text-[9px] font-black uppercase mb-1">Latest Confidence</p>
+                <p id="node-confidence" class="text-lg font-mono font-bold text-emerald-500">--%</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div class="lg:col-span-7 space-y-6">
-                <div class="glass p-4 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="flex items-center gap-3 p-3 bg-white/5 rounded-2xl">
-                        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <div>
-                            <p class="text-[10px] font-black text-slate-500 uppercase">NODE_SENTIMENT_01</p>
-                            <p class="text-xs text-white">Sentiment: Bullish Bias</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3 p-3 bg-white/5 rounded-2xl">
-                        <div class="w-2 h-2 rounded-full bg-blue-500"></div>
-                        <div>
-                            <p class="text-[10px] font-black text-slate-500 uppercase">NODE_VOLATILITY_04</p>
-                            <p class="text-xs text-white">ATR: Normal Range</p>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="bg-slate-900/50 p-4 sm:p-6 rounded-3xl border border-white/5 shadow-2xl">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-[10px] font-black text-slate-500 uppercase">Growth Performance</h3>
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Equity Growth</h3>
                         <div class="flex gap-1 bg-slate-950/50 p-1 rounded-lg border border-white/5">
                             <button onclick="updateChartFilter('24h')" id="btn-24h" class="text-[9px] px-2 py-1 rounded-md text-slate-400 hover:text-white uppercase font-bold transition-all">24h</button>
-                            <button onclick="updateChartFilter('7d')" id="btn-7d" class="text-[9px] px-2 py-1 rounded-md text-slate-400 hover:text-white uppercase font-bold transition-all">7d</button>
-                            <button onclick="updateChartFilter('30d')" id="btn-30d" class="text-[9px] px-2 py-1 rounded-md text-slate-400 hover:text-white uppercase font-bold transition-all">30d</button>
                             <button onclick="updateChartFilter('all')" id="btn-all" class="text-[9px] px-2 py-1 rounded-md bg-blue-600 text-white uppercase font-bold transition-all">All</button>
                         </div>
                     </div>
                     <div class="h-[300px] lg:h-[400px]"><canvas id="performanceChart"></canvas></div>
                 </div>
-                <div class="bg-slate-900/50 rounded-3xl border border-white/5 overflow-hidden h-[400px] shadow-2xl">
+                <div class="bg-slate-900/50 rounded-3xl border border-white/5 overflow-hidden h-[450px] shadow-2xl">
                     <div id="tv-chart" class="h-full"></div>
                 </div>
             </div>
 
             <div class="lg:col-span-5 bg-slate-900/50 rounded-3xl border border-white/5 flex flex-col overflow-hidden shadow-2xl">
                 <div class="p-4 border-b border-white/5 bg-slate-900/80 flex justify-between items-center">
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase">Execution Feed</h3>
-                    <span class="text-[9px] text-emerald-500 font-mono">LIVE_WORKER_FEED</span>
+                    <div>
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hourly Decision Feed</h3>
+                        <p class="text-[8px] text-slate-500 font-mono mt-1">WORKFLOW_REPORT_LOG</p>
+                    </div>
+                    <span class="text-[9px] text-blue-500 font-mono animate-pulse">ACTIVE_STREAM</span>
                 </div>
-                <div class="overflow-y-auto custom-scrollbar h-[600px] lg:h-[1050px]">
-                    <div id="trade-feed" class="divide-y divide-white/5"></div>
-                </div>
+                <div id="logic-feed" class="overflow-y-auto custom-scrollbar h-[600px] lg:h-[950px] p-4 space-y-4">
+                    </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
         const PROXY_URL = "https://tradingproxy.iamkevinkelly.workers.dev"; 
         const STARTING_BALANCE = 100000;
         
@@ -164,53 +149,77 @@
 
                 // Process Sheet CSV Data
                 const rows = data.sheetData.split('\n').slice(1).filter(r => r.trim() !== "" && r.includes(','));
-                const sortedRows = rows.sort((a, b) => new Date(a.split(',')[1]) - new Date(b.split(',')[1]));
+                // Sort by Column 0 (Time)
+                const sortedRows = rows.sort((a, b) => new Date(a.split(',')[0]) - new Date(b.split(',')[0]));
                 
-                const feedContainer = document.getElementById('trade-feed'); feedContainer.innerHTML = '';
+                const logicFeed = document.getElementById('logic-feed'); logicFeed.innerHTML = '';
                 
-                // Reset baseline
                 rawPoints = [{ x: new Date("2026-03-10T00:00:00").getTime(), y: 0 }];
                 let winCount = 0, closedCount = 0, runningEquity = 0, totalPnlSum = 0, dailyPnlSum = 0;
 
-                sortedRows.forEach((row) => {
-                    const cols = row.split(',');
-                    const dateObj = new Date(cols[1]); 
-                    const symbol = cols[2], tp = cols[4], sl = cols[5], status = cols[7]?.trim().toUpperCase() || "";
-                    const pnlVal = parseFloat(cols[9]) || 0, outcome = cols[10]?.trim() || "";
+                sortedRows.forEach((row, index) => {
+                    const cols = row.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                    
+                    // Column Mapping per request:
+                    // 0:Time, 1:Decision, 2:Reason, 3:ST_Category, 4:ST_Confidence, 5:ST_Rationale, 
+                    // 6:LT_Category, 7:LT_Confidence, 8:LT_Rationale, 9:PnL (Optional for chart)
+                    const [time, decision, reason, stCat, stConf, stRat, ltCat, ltConf, ltRat] = cols;
+                    const pnlVal = parseFloat(cols[9]) || 0;
 
-                    if (status === "CLOSED") {
+                    // Update Global Stats for Closed Trades/Reports
+                    if (pnlVal !== 0) {
                         closedCount++;
                         totalPnlSum += pnlVal;
                         runningEquity += pnlVal;
-                        rawPoints.push({ x: dateObj.getTime(), y: runningEquity });
-                        if (dateObj.toDateString() === today) dailyPnlSum += pnlVal;
-                        if (outcome.toLowerCase() === "win" || pnlVal > 0) winCount++;
+                        rawPoints.push({ x: new Date(time).getTime(), y: runningEquity });
+                        if (new Date(time).toDateString() === today) dailyPnlSum += pnlVal;
+                        if (pnlVal > 0) winCount++;
                     }
 
-                    const isOpen = status === "OPEN";
-                    const item = document.createElement('div');
-                    item.className = `p-4 flex flex-col gap-2 ${isOpen ? 'bg-blue-500/10 border-l-4 border-l-blue-500' : ''}`;
-                    item.innerHTML = `
-                        <div class="flex justify-between items-center text-[10px] font-mono text-slate-500">
-                            <span>${dateObj.toLocaleString()}</span>
-                            <span class="px-2 py-0.5 rounded font-black uppercase ${isOpen ? 'bg-blue-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}">${status}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
+                    // Create Hourly Report Card
+                    const isLong = decision.toUpperCase().includes('BUY') || decision.toUpperCase().includes('LONG');
+                    const isShort = decision.toUpperCase().includes('SELL') || decision.toUpperCase().includes('SHORT');
+                    const borderClass = isLong ? 'card-long' : (isShort ? 'card-short' : 'card-neutral');
+                    const decColor = isLong ? 'text-emerald-400' : (isShort ? 'text-red-400' : 'text-slate-400');
+
+                    const reportCard = document.createElement('div');
+                    reportCard.className = `bg-slate-900/80 border border-white/5 p-4 rounded-2xl space-y-4 shadow-xl ${borderClass} transition-all hover:bg-slate-800/80`;
+                    reportCard.innerHTML = `
+                        <div class="flex justify-between items-start">
                             <div>
-                                <h4 class="text-sm font-black text-blue-400 leading-none mb-1">${symbol}</h4>
-                                <div class="flex gap-2 text-[9px] font-mono"><span class="text-green-500">TP: ${tp}</span><span class="text-red-500">SL: ${sl}</span></div>
+                                <p class="text-[9px] font-mono text-slate-500 uppercase mb-1">${new Date(time).toLocaleString()}</p>
+                                <h4 class="text-lg font-black ${decColor} tracking-tighter uppercase leading-none">${decision}</h4>
                             </div>
-                            <div class="text-right">
-                                <p class="text-xs font-mono font-bold ${pnlVal >= 0 ? 'text-green-400' : 'text-red-400'}">
-                                    ${isOpen ? 'LIVE' : (pnlVal > 0 ? '+' : '') + pnlVal.toFixed(2)}
-                                </p>
+                            <span class="text-[9px] bg-white/5 border border-white/10 text-slate-400 px-2 py-1 rounded font-bold uppercase">${reason}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                            <div class="space-y-1">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-[8px] text-slate-500 font-black uppercase">Short Term</p>
+                                    <span class="text-[9px] text-blue-400 font-mono">${stConf}%</span>
+                                </div>
+                                <p class="text-[11px] font-bold text-white leading-tight">${stCat}</p>
+                                <p class="text-[10px] text-slate-400 italic leading-snug line-clamp-3">"${stRat}"</p>
+                            </div>
+                            <div class="space-y-1 border-l border-white/5 pl-4">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-[8px] text-slate-500 font-black uppercase">Long Term</p>
+                                    <span class="text-[9px] text-blue-400 font-mono">${ltConf}%</span>
+                                </div>
+                                <p class="text-[11px] font-bold text-white leading-tight">${ltCat}</p>
+                                <p class="text-[10px] text-slate-400 italic leading-snug line-clamp-3">"${ltRat}"</p>
                             </div>
                         </div>
                     `;
-                    feedContainer.prepend(item);
+                    logicFeed.prepend(reportCard);
+
+                    // Update Confidence Stat with the most recent row
+                    if (index === sortedRows.length - 1) {
+                        document.getElementById('node-confidence').innerText = `${stConf}%`;
+                    }
                 });
 
-                // Stats Updates
+                // Global Stats Update
                 const totalRoi = (totalPnlSum / STARTING_BALANCE) * 100;
                 document.getElementById('daily-pnl').innerText = (dailyPnlSum >= 0 ? '+' : '') + `$${dailyPnlSum.toFixed(2)}`;
                 document.getElementById('total-pnl').innerHTML = `
@@ -218,7 +227,7 @@
                     <span class="text-[11px] font-bold opacity-90">${totalPnlSum >= 0 ? '+' : ''}${totalRoi.toFixed(2)}%</span>
                 `;
                 document.getElementById('total-pnl').className = `font-mono ${totalPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
-                document.getElementById('trade-count').innerText = closedCount;
+                document.getElementById('trade-count').innerText = rows.length;
                 document.getElementById('win-rate').innerText = `${closedCount > 0 ? Math.round((winCount/closedCount)*100) : 0}%`;
                 document.getElementById('last-sync').innerText = `Sync: ${new Date().toLocaleTimeString()}`;
 
@@ -226,10 +235,9 @@
             } catch (err) { console.error("Sync Failed", err); } finally { icon.classList.remove('animate-spin'); }
         }
 
-        // --- CHART LOGIC ---
         function updateChartFilter(range) {
             currentFilter = range;
-            ['24h', '7d', '30d', 'all'].forEach(id => {
+            ['24h', 'all'].forEach(id => {
                 const b = document.getElementById(`btn-${id}`);
                 b.classList.remove('bg-blue-600', 'text-white'); b.classList.add('text-slate-400');
             });
@@ -240,9 +248,8 @@
         function applyChartData() {
             let filtered = rawPoints;
             const now = Date.now();
-            if (currentFilter !== 'all') {
-                const lookback = { '24h': 86400000, '7d': 604800000, '30d': 2592000000 };
-                filtered = rawPoints.filter(p => p.x >= (now - lookback[currentFilter]));
+            if (currentFilter === '24h') {
+                filtered = rawPoints.filter(p => p.x >= (now - 86400000));
             }
             renderChart(filtered);
         }
@@ -260,8 +267,7 @@
                         tension: 0.15,
                         fill: true,
                         backgroundColor: 'rgba(59,130,246,0.05)',
-                        pointRadius: data.length > 40 ? 0 : 3,
-                        pointBackgroundColor: '#3b82f6'
+                        pointRadius: 0
                     }]
                 },
                 options: {
@@ -269,18 +275,17 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { type: 'time', time: { unit: 'day', displayFormats: { day: 'MMM d' } }, grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 }, maxTicksLimit: 7 } },
-                        y: { grid: { color: (c) => c.tick.value === 0 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.05)', lineWidth: (c) => c.tick.value === 0 ? 2 : 1 }, ticks: { color: '#64748b', font: { size: 10 } } }
+                        x: { type: 'time', time: { unit: 'day' }, grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } }
                     }
                 }
             });
         }
 
         function initTV() { 
-            new TradingView.widget({ "autosize": true, "symbol": "COINBASE:BTCUSD", "interval": "60", "theme": "dark", "style": "1", "container_id": "tv-chart", "hide_top_toolbar": true, "allow_symbol_change": true }); 
+            new TradingView.widget({ "autosize": true, "symbol": "COINBASE:BTCUSD", "interval": "60", "theme": "dark", "style": "1", "container_id": "tv-chart", "hide_top_toolbar": true, "allow_symbol_change": true, "backgroundColor": "rgba(11, 15, 26, 1)" }); 
         }
 
-        // Initialize
         initDashboard(); initTV(); updateBTCPrice();
         setInterval(initDashboard, 60000); 
         setInterval(updateBTCPrice, 5000); 
