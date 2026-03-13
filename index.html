@@ -107,7 +107,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">Awaiting Next Report</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">System Active</span>
                 </div>
             </div>
             <div id="decision-feed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
@@ -117,7 +117,6 @@
 
     <script>
         const PROXY_URL = "https://tradingproxy.iamkevinkelly.workers.dev"; 
-        const DECISIONS_CSV_URL = "https://tradingproxy.iamkevinkelly.workers.dev?type=decisions"; // Replace with actual decision URL logic if different
         const STARTING_BALANCE = 100000;
         let chartInstance = null;
         let lastBtcPrice = 0;
@@ -130,7 +129,6 @@
                 const price = parseFloat(data.data.amount);
                 const btcEl = document.getElementById('btc-price');
                 const trendEl = document.getElementById('btc-trend');
-                
                 if (price > 0) {
                     btcEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
                     if (lastBtcPrice > 0 && price !== lastBtcPrice) {
@@ -139,10 +137,7 @@
                         btcEl.classList.add(isUp ? 'price-up' : 'price-down');
                         trendEl.innerHTML = isUp ? '▲' : '▼';
                         trendEl.className = `text-xs ${isUp ? 'text-green-500' : 'text-red-500'}`;
-                        setTimeout(() => { 
-                            btcEl.classList.remove('price-up', 'price-down');
-                            btcEl.classList.add('text-orange-500');
-                        }, 1000);
+                        setTimeout(() => { btcEl.classList.remove('price-up', 'price-down'); btcEl.classList.add('text-orange-500'); }, 1000);
                     }
                     lastBtcPrice = price;
                 }
@@ -150,15 +145,18 @@
         }
 
         async function initDashboard() {
-            const icon = document.getElementById('refresh-icon'); icon.classList.add('animate-spin');
+            const icon = document.getElementById('refresh-icon'); 
+            icon.classList.add('animate-spin');
             try {
                 const response = await fetch(PROXY_URL);
                 const data = await response.json();
                 const today = new Date().toDateString();
                 
+                // 1. Update Account Stats
                 document.getElementById('live-equity').innerText = `$${parseFloat(data.account.equity).toLocaleString()}`;
                 document.getElementById('buying-power').innerText = `$${parseFloat(data.account.buying_power).toLocaleString()}`;
 
+                // 2. Process Trade Feed & Chart Data
                 const rows = data.sheetData.split('\n').slice(1).filter(r => r.trim() !== "" && r.includes(','));
                 const feedContainer = document.getElementById('trade-feed'); feedContainer.innerHTML = '';
                 
@@ -167,8 +165,6 @@
 
                 rows.forEach((row) => {
                     const cols = row.split(',');
-                    if (cols.length < 11) return;
-
                     const dateObj = new Date(cols[1]); 
                     const status = cols[7]?.trim().toUpperCase() || "";
                     const pnlVal = parseFloat(cols[9]) || 0;
@@ -181,7 +177,6 @@
                     }
 
                     runningPnl += pnlVal;
-                    
                     allTrades.push({
                         timestamp: cols[1],
                         dateLabel: dateObj.toLocaleDateString('en-US', {month:'short', day:'numeric'}),
@@ -189,7 +184,6 @@
                         cumulativePnl: runningPnl
                     });
 
-                    // UI Card creation
                     const isOpen = status === "OPEN";
                     const item = document.createElement('div');
                     item.className = `p-4 flex flex-col gap-2 ${isOpen ? 'bg-blue-500/10 border-l-4 border-l-blue-500' : ''}`;
@@ -199,44 +193,71 @@
                             <span class="px-2 py-0.5 rounded font-black uppercase ${isOpen ? 'bg-blue-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}">${status}</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <div>
-                                <h4 class="text-sm font-black text-blue-400 mb-1">${cols[2]}</h4>
-                                <div class="flex gap-2 text-[9px] font-mono">
-                                    <span class="text-green-500 font-bold uppercase">TP: ${cols[4]}</span>
-                                    <span class="text-red-500 font-bold uppercase">SL: ${cols[5]}</span>
-                                </div>
-                            </div>
+                            <div><h4 class="text-sm font-black text-blue-400 mb-1">${cols[2]}</h4><div class="flex gap-2 text-[9px] font-mono"><span class="text-green-500 font-bold">TP: ${cols[4]}</span><span class="text-red-500 font-bold">SL: ${cols[5]}</span></div></div>
                             <div class="text-right"><p class="text-xs font-mono font-bold ${pnlVal >= 0 ? 'text-green-400' : 'text-red-400'}">${isOpen ? 'LIVE' : (pnlVal > 0 ? '+' : '') + pnlVal.toFixed(2)}</p></div>
                         </div>
                     `;
                     feedContainer.prepend(item);
                 });
 
-                // ROI & STATS UPDATE
+                // Update Stats Display
                 const totalPnlSum = runningPnl;
                 const totalRoi = (totalPnlSum / STARTING_BALANCE) * 100;
-                
-                const dailyEl = document.getElementById('daily-pnl');
-                dailyEl.innerText = (dailyPnlSum >= 0 ? '+' : '') + `$${dailyPnlSum.toFixed(2)}`;
-                dailyEl.className = `text-lg font-mono font-bold ${dailyPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
-
-                const totalPnlEl = document.getElementById('total-pnl');
-                totalPnlEl.innerHTML = `<span class="block text-lg font-bold">${totalPnlSum >= 0 ? '+' : ''}$${totalPnlSum.toLocaleString(undefined, {minimumFractionDigits: 2})}</span><span class="text-[11px] font-bold opacity-90">${totalPnlSum >= 0 ? '+' : ''}${totalRoi.toFixed(2)}%</span>`;
-                totalPnlEl.className = `font-mono ${totalPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
-
+                document.getElementById('daily-pnl').innerText = (dailyPnlSum >= 0 ? '+' : '') + `$${dailyPnlSum.toFixed(2)}`;
+                document.getElementById('daily-pnl').className = `text-lg font-mono font-bold ${dailyPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
+                document.getElementById('total-pnl').innerHTML = `<span class="block text-lg font-bold">${totalPnlSum >= 0 ? '+' : ''}$${totalPnlSum.toLocaleString(undefined, {minimumFractionDigits: 2})}</span><span class="text-[11px] font-bold opacity-90">${totalRoi.toFixed(2)}%</span>`;
+                document.getElementById('total-pnl').className = `font-mono ${totalPnlSum >= 0 ? 'text-green-400' : 'text-red-400'}`;
                 document.getElementById('trade-count').innerText = closedCount;
                 document.getElementById('win-rate').innerText = `${closedCount > 0 ? Math.round((winCount / closedCount) * 100) : 0}%`;
-                
+
+                // 3. Process Decision Feed (Pulling from data.decisionsData)
+                if (data.decisionsData) {
+                    renderDecisionFeed(data.decisionsData);
+                }
+
                 applyFilter('all', document.querySelector('.active-filter'));
-                updateDecisionFeed();
+                document.getElementById('last-sync').innerText = `Sync: ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
 
             } catch (err) { console.error("Sync Failed", err); } finally { icon.classList.remove('animate-spin'); }
+        }
+
+        function renderDecisionFeed(csvString) {
+            const feed = document.getElementById('decision-feed');
+            const rows = csvString.split('\n').slice(1).filter(r => r.trim() !== "");
+            feed.innerHTML = '';
+
+            rows.forEach(row => {
+                const cols = row.split(',');
+                if (cols.length < 9) return;
+                
+                const decisionColor = cols[1].toUpperCase().includes('BUY') ? 'text-green-400' : cols[1].toUpperCase().includes('SELL') ? 'text-red-400' : 'text-slate-400';
+                const card = document.createElement('div');
+                card.className = "bg-black/30 border border-white/5 rounded-2xl p-4 flex flex-col gap-4";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div><span class="text-[8px] font-mono text-slate-500">${cols[0]}</span><h4 class="text-sm font-black ${decisionColor} uppercase">${cols[1]}</h4></div>
+                        <span class="text-[8px] bg-slate-800 px-2 py-1 rounded text-slate-400 font-bold uppercase truncate max-w-[100px]">${cols[2]}</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="bg-white/5 p-2 rounded-lg border border-white/5">
+                            <div class="flex justify-between text-[8px] font-black uppercase mb-1"><span class="text-blue-400">Short Term</span><span class="text-white">${cols[4]}%</span></div>
+                            <p class="text-[10px] text-white font-bold">${cols[3]}</p>
+                            <p class="text-[9px] text-slate-500 italic mt-1 leading-tight line-clamp-2">"${cols[5]}"</p>
+                        </div>
+                        <div class="bg-white/5 p-2 rounded-lg border border-white/5">
+                            <div class="flex justify-between text-[8px] font-black uppercase mb-1"><span class="text-purple-400">Long Term</span><span class="text-white">${cols[7]}%</span></div>
+                            <p class="text-[10px] text-white font-bold">${cols[6]}</p>
+                            <p class="text-[9px] text-slate-500 italic mt-1 leading-tight line-clamp-2">"${cols[8]}"</p>
+                        </div>
+                    </div>
+                `;
+                feed.prepend(card);
+            });
         }
 
         function applyFilter(range, btn) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active-filter', 'bg-blue-600', 'text-white'));
             btn.classList.add('active-filter', 'bg-blue-600', 'text-white');
-
             const now = new Date();
             let filtered = allTrades.filter(t => {
                 const tDate = new Date(t.timestamp);
@@ -245,7 +266,6 @@
                 if (range === '30d') return (now - tDate) <= (30 * 24 * 60 * 60 * 1000);
                 return true;
             });
-
             filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             renderChart(filtered.map(t => t.dateLabel), filtered.map(t => t.cumulativePnl));
         }
@@ -253,38 +273,21 @@
         function renderChart(labels, data) {
             const ctx = document.getElementById('performanceChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
-
-            const minVal = Math.min(...data, 0); 
-            const maxVal = Math.max(...data, 0);
-            const range = maxVal - minVal;
+            const minVal = Math.min(...data, 0), maxVal = Math.max(...data, 0), range = maxVal - minVal;
             const gradient = ctx.createLinearGradient(0, 0, 0, 400); 
-
             if (range > 0) {
                 const zeroPos = maxVal / range; 
                 gradient.addColorStop(0, '#4ade80');
                 gradient.addColorStop(Math.max(0, zeroPos - 0.05), '#4ade80');
                 gradient.addColorStop(Math.min(1, zeroPos + 0.05), '#f87171');
                 gradient.addColorStop(1, '#f87171');
-            } else {
-                gradient.addColorStop(0, data[0] >= 0 ? '#4ade80' : '#f87171');
-            }
+            } else { gradient.addColorStop(0, data[0] >= 0 ? '#4ade80' : '#f87171'); }
 
             chartInstance = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        data,
-                        borderColor: gradient,
-                        borderWidth: 3,
-                        tension: 0.4,
-                        fill: { target: 'origin', above: 'rgba(74, 222, 128, 0.05)', below: 'rgba(248, 113, 113, 0.05)' },
-                        pointRadius: 0
-                    }]
-                },
+                data: { labels, datasets: [{ data, borderColor: gradient, borderWidth: 3, tension: 0.4, fill: { target: 'origin', above: 'rgba(74, 222, 128, 0.05)', below: 'rgba(248, 113, 113, 0.05)' }, pointRadius: 0 }] },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
                         x: { display: true, grid: { display: false }, ticks: { color: '#334155', font: { size: 9 }, maxTicksLimit: 10 } },
@@ -294,50 +297,10 @@
             });
         }
 
-        async function updateDecisionFeed() {
-            try {
-                const response = await fetch(DECISIONS_CSV_URL);
-                const csvText = await response.text();
-                const rows = csvText.split('\n').slice(1);
-                const feed = document.getElementById('decision-feed'); feed.innerHTML = '';
-
-                rows.forEach(row => {
-                    if (!row.trim() || !row.includes(',')) return;
-                    const [time, decision, reason, sCat, sConf, sRat, lCat, lConf, lRat] = row.split(',');
-                    const decisionColor = decision.toUpperCase().includes('BUY') ? 'text-green-400' : decision.toUpperCase().includes('SELL') ? 'text-red-400' : 'text-slate-400';
-
-                    const card = document.createElement('div');
-                    card.className = "bg-black/30 border border-white/5 rounded-2xl p-4 flex flex-col gap-4";
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <div><span class="text-[8px] font-mono text-slate-500">${time}</span><h4 class="text-sm font-black ${decisionColor} uppercase">${decision}</h4></div>
-                            <span class="text-[8px] bg-slate-800 px-2 py-1 rounded text-slate-400 font-bold uppercase truncate max-w-[100px]">${reason}</span>
-                        </div>
-                        <div class="space-y-3">
-                            <div class="bg-white/5 p-2 rounded-lg">
-                                <div class="flex justify-between text-[8px] font-black uppercase mb-1"><span class="text-blue-400">Short Term</span><span class="text-white">${sConf}%</span></div>
-                                <p class="text-[10px] text-white font-bold">${sCat}</p>
-                                <p class="text-[9px] text-slate-500 italic mt-1 leading-tight line-clamp-2">"${sRat}"</p>
-                            </div>
-                            <div class="bg-white/5 p-2 rounded-lg">
-                                <div class="flex justify-between text-[8px] font-black uppercase mb-1"><span class="text-purple-400">Long Term</span><span class="text-white">${lConf}%</span></div>
-                                <p class="text-[10px] text-white font-bold">${lCat}</p>
-                                <p class="text-[9px] text-slate-500 italic mt-1 leading-tight line-clamp-2">"${lRat}"</p>
-                            </div>
-                        </div>
-                    `;
-                    feed.prepend(card);
-                });
-            } catch (e) { console.error("Decision Feed Fail"); }
-        }
-
-        function initTV() { 
-            new TradingView.widget({ "autosize": true, "symbol": "COINBASE:BTCUSD", "interval": "60", "theme": "dark", "style": "1", "container_id": "tv-chart", "hide_top_toolbar": true, "allow_symbol_change": true, "backgroundColor": "#0b0f1a", "gridColor": "rgba(42, 46, 57, 0.06)" }); 
-        }
+        function initTV() { new TradingView.widget({ "autosize": true, "symbol": "COINBASE:BTCUSD", "interval": "60", "theme": "dark", "style": "1", "container_id": "tv-chart", "hide_top_toolbar": true, "allow_symbol_change": true, "backgroundColor": "#0b0f1a" }); }
 
         initDashboard(); initTV(); updateBTCPrice();
-        setInterval(initDashboard, 60000); 
-        setInterval(updateBTCPrice, 5000); 
+        setInterval(initDashboard, 60000); setInterval(updateBTCPrice, 5000); 
     </script>
 </body>
 </html>
